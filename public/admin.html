@@ -459,12 +459,13 @@ function renderReservations() {
       '</div><span class="badge '+r.status+'">'+STATUS_LABELS[r.status]+'</span></div>'+
       '<div class="res-name">'+esc(r.customer_name)+'</div>'+
       '<div class="res-furi">'+esc(r.furigana)+'</div>'+
-      (r.phone ? '<div class="res-furi"><a href="tel:'+r.phone.replace(/-/g,'')+'" style="color:var(--mint-dark);text-decoration:none;font-weight:500">📱 '+esc(r.phone)+'</a></div>' : '')+
-      (r.message ? '<div class="res-msg"><div class="res-msg-label">伝えたいこと</div>'+esc(r.message)+'</div>' : '')+
-      '<div class="res-actions">'+
-        (r.status==='pending' ? '<button class="act-btn confirm" onclick="updateStatus(\''+r.id+'\',\'confirmed\')">✓ 確認済</button>' : '')+
-        (r.status==='confirmed' ? '<button class="act-btn complete" onclick="updateStatus(\''+r.id+'\',\'completed\')">💆 施術済</button>' : '')+(r.status==='completed' ? '<button class="act-btn confirm" onclick="updateStatus(\''+r.id+'\',\'confirmed\')">↩ 確認済に戻す</button>' : '')+
-        (r.status!=='cancelled'&&r.status!=='completed' ? '<button class="act-btn cancel" onclick="updateStatus(\''+r.id+'\',\'cancelled\')">✕ キャンセル</button>' : '')+
+      (r.phone ? '<div class="res-furi"><a href="tel:' + r.phone.replace(/-/g,'') + '" style="color:var(--mint-dark);text-decoration:none;font-weight:500">📱 ' + esc(r.phone) + '</a></div>' : '') +
+      (r.message ? '<div class="res-msg"><div class="res-msg-label">伝えたいこと</div>' + esc(r.message) + '</div>' : '') +
+      '<div class="res-actions">' +
+      (r.status === 'pending'   ? '<button class="act-btn confirm"  onclick="updateStatus(\'' + r.id + '\',\'confirmed\')" >✓ 確認済にする</button>' : '') +
+      (r.status === 'confirmed'  ? '<button class="act-btn complete" onclick="updateStatus(\'' + r.id + '\',\'completed\')" >💆 施術済にする</button>' : '') +
+      (r.status === 'completed'  ? '<button class="act-btn confirm"  onclick="updateStatus(\'' + r.id + '\',\'confirmed\')" >↩ 確認済に戻す</button>' : '') +
+      (r.status !== 'cancelled' && r.status !== 'completed' ? '<button class="act-btn cancel" onclick="updateStatus(\'' + r.id + '\',\'cancelled\')" >✕ キャンセル</button>' : '') +
       '</div></div>'
   }).join('')
 }
