@@ -490,51 +490,73 @@ function jpDate(dateStr) {
   return +m+'月'+d+'日（'+WDAYS[dow]+'）'
 }
 
-// ── Load Month ──
-async function loadMonth(year, month) {
+// ── リスナー管理 ──
+let _unsubSlots = null
+let _unsubRes   = null
+let _allSlots   = []   // 当月の空き枠
+let _bookedSet  = new Set() // 予約済みslot_id
+
+function _rebuildAvail() {
+  slotMap = {}; avail = {}
+  _allSlots.forEach(sl => {
+    if (!_bookedSet.has(sl.id)) {
+      slotMap[sl.id] = sl
+      if (!avail[sl.slot_date]) avail[sl.slot_date] = []
+      avail[sl.slot_date].push(sl.id)
+    }
+  })
+  renderCal(curYear, curMonth)
+}
+
+// ── Load Month（onSnapshot リアルタイム版）──
+function loadMonth(year, month) {
+  // 前のリスナーを解除
+  if (_unsubSlots) { _unsubSlots(); _unsubSlots = null }
+  if (_unsubRes)   { _unsubRes();   _unsubRes   = null }
+
   const grid = document.getElementById('daysGrid')
   grid.innerHTML = '<div class="loading-txt">読み込み中...</div>'
-  slotMap = {}; avail = {}
+  _allSlots = []; _bookedSet = new Set()
 
   const pad  = n => String(n).padStart(2,'0')
   const last = new Date(year, month+1, 0).getDate()
   const s    = year+'-'+pad(month+1)+'-01'
   const e    = year+'-'+pad(month+1)+'-'+pad(last)
 
-  let slots = [], bookedSet = new Set()
-
   if (IS_DEMO || !db) {
-    slots = makeDemoSlots().filter(sl => sl.slot_date >= s && sl.slot_date <= e)
-    getDemoReservations().forEach(r => bookedSet.add(r.slot_id))
-  } else {
-    try {
-      // Firestore: 空き枠取得
-      const [sSnap, rSnap] = await Promise.all([
-        db.collection('available_slots')
-          .where('slot_date','>=',s).where('slot_date','<=',e)
-          .orderBy('slot_date').orderBy('time_start').get(),
-        db.collection('reservations')
-          .where('slot_date','>=',s).where('slot_date','<=',e)
-          .get() // statusはクライアント側でフィルタ
-      ])
-      slots = sSnap.docs.map(d => ({ id: d.id, ...d.data() }))
-      rSnap.docs.forEach(d => { const r = d.data(); if(r.status==='pending'||r.status==='confirmed') bookedSet.add(r.slot_id) })
-    } catch(err) {
-      console.error('Firestore error:', err)
-      grid.innerHTML = '<div class="loading-txt" style="color:#E07070">読み込みエラー。設定を確認してください。</div>'
-      return
-    }
+    _allSlots = makeDemoSlots().filter(sl => sl.slot_date >= s && sl.slot_date <= e)
+    getDemoReservations().forEach(r => _bookedSet.add(r.slot_id))
+    _rebuildAvail()
+    return
   }
 
-  slots.forEach(sl => {
-    if (!bookedSet.has(sl.id)) {
-      slotMap[sl.id] = sl
-      if (!avail[sl.slot_date]) avail[sl.slot_date] = []
-      avail[sl.slot_date].push(sl.id)
-    }
-  })
+  let slotsReady = false, resReady = false
 
-  renderCal(year, month)
+  // 空き枠リアルタイムリスナー
+  _unsubSlots = db.collection('available_slots')
+    .where('slot_date','>=',s).where('slot_date','<=',e)
+    .orderBy('slot_date').orderBy('time_start')
+    .onSnapshot(snap => {
+      _allSlots = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      slotsReady = true
+      if (resReady) _rebuildAvail()
+    }, err => {
+      console.error('slots error:', err)
+      grid.innerHTML = '<div class="loading-txt" style="color:#E07070">読み込みエラー。</div>'
+    })
+
+  // 予約リアルタイムリスナー
+  _unsubRes = db.collection('reservations')
+    .where('slot_date','>=',s).where('slot_date','<=',e)
+    .onSnapshot(snap => {
+      _bookedSet = new Set()
+      snap.docs.forEach(d => {
+        const r = d.data()
+        if (r.status === 'pending' || r.status === 'confirmed') _bookedSet.add(r.slot_id)
+      })
+      resReady = true
+      if (slotsReady) _rebuildAvail()
+    }, err => { console.error('res error:', err) })
 }
 
 // ── Render Calendar ──
