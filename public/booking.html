@@ -367,6 +367,13 @@
         <input class="finput" type="text" id="iFurigana" placeholder="やまだ はなこ">
       </div>
       <div class="fgroup">
+        <label class="flabel">携帯番号<em>*</em></label>
+        <input class="finput" type="tel" id="iPhone" placeholder="090-0000-0000"
+          autocomplete="tel" inputmode="numeric"
+          oninput="formatPhone(this)">
+        <div class="fhint">※ ハイフンは自動で入ります</div>
+      </div>
+      <div class="fgroup">
         <label class="flabel">伝えたいこと</label>
         <textarea class="ftarea" id="iMessage" placeholder="気になる症状、ご要望などをご記入ください。"></textarea>
         <div class="fhint">※ 任意項目です</div>
@@ -568,6 +575,7 @@ function selectTime(slotId) {
     '📅 '+jpDate(selSlot.slot_date)+'　'+fmt5(selSlot.time_start)+' 〜 '+fmt5(selSlot.time_end)
   document.getElementById('iName').value = ''
   document.getElementById('iFurigana').value = ''
+  document.getElementById('iPhone').value = ''
   document.getElementById('iMessage').value = ''
   closeSheet()
   setTimeout(() => document.getElementById('fmodal').classList.add('on'), 80)
@@ -578,9 +586,11 @@ function closeForm() { document.getElementById('fmodal').classList.remove('on') 
 async function submitReservation() {
   const name     = document.getElementById('iName').value.trim()
   const furigana = document.getElementById('iFurigana').value.trim()
+  const phone    = document.getElementById('iPhone').value.trim()
   const msg      = document.getElementById('iMessage').value.trim()
   if (!name)     { alert('お名前を入力してください'); return }
   if (!furigana) { alert('ふりがなを入力してください'); return }
+  if (!phone)    { alert('携帯番号を入力してください'); return }
 
   const btn = document.getElementById('submitBtn')
   btn.disabled = true
@@ -594,6 +604,7 @@ async function submitReservation() {
       time_end:      selSlot.time_end,
       customer_name: name,
       furigana:      furigana,
+      phone:         phone,
       message:       msg,
       status:        'pending',
       created_at:    new Date().toISOString()
@@ -629,6 +640,14 @@ async function submitReservation() {
 function resetAll() {
   document.getElementById('successScreen').classList.remove('on')
   loadMonth(curYear, curMonth)
+}
+
+// ── 電話番号 自動ハイフン ──
+function formatPhone(input) {
+  let v = input.value.replace(/[^\d]/g, '')
+  if (v.length <= 3)       input.value = v
+  else if (v.length <= 7)  input.value = v.slice(0,3) + '-' + v.slice(3)
+  else                     input.value = v.slice(0,3) + '-' + v.slice(3,7) + '-' + v.slice(7,11)
 }
 
 // ── Init ──

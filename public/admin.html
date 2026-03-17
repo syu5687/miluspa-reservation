@@ -458,6 +458,7 @@ function renderReservations() {
       '</div><span class="badge '+r.status+'">'+STATUS_LABELS[r.status]+'</span></div>'+
       '<div class="res-name">'+esc(r.customer_name)+'</div>'+
       '<div class="res-furi">'+esc(r.furigana)+'</div>'+
+      (r.phone ? '<div class="res-furi">📱 '+esc(r.phone)+'</div>' : '')+
       (r.message ? '<div class="res-msg"><div class="res-msg-label">伝えたいこと</div>'+esc(r.message)+'</div>' : '')+
       '<div class="res-actions">'+
         (r.status==='pending' ? '<button class="act-btn confirm" onclick="updateStatus(\''+r.id+'\',\'confirmed\')">✓ 確認済</button>' : '')+

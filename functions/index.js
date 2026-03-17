@@ -65,6 +65,7 @@ exports.notifyOnReservation = onDocumentCreated(
       `【新規ご予約 - MiluSpa】\n` +
       `📅 ${+m}月${+d}日（${WDAYS[dow]}） ${data.time_start.slice(0,5)}〜${data.time_end.slice(0,5)}\n` +
       `👤 ${data.customer_name}（${data.furigana}）\n` +
+      `📱 ${data.phone || 'なし'}\n` +
       `💬 ${data.message || 'なし'}`
 
     await sendLineMessage(token, userId, msg)
