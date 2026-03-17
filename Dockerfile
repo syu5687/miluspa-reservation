@@ -19,8 +19,8 @@ RUN printf '%s\n' \
   '    Require all granted' \
   '</Directory>' >> /etc/apache2/apache2.conf
 
-# ファイル配置
-COPY . /var/www/html
+# publicフォルダの中身をドキュメントルートに配置
+COPY public/ /var/www/html/
 
 # パーミッション
 RUN chown -R www-data:www-data /var/www/html \
