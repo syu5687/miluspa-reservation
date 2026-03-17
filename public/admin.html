@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MiluSpa｜管理画面</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Noto+Serif+JP:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Firebase SDK (v9 compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+
+  <style>
+    :root {
+      --mint:        #7EC8A9;
+      --mint-light:  #E8F5F0;
+      --mint-dark:   #5BA08A;
+      --cream:       #FAF9F6;
+      --white:       #FFFFFF;
+      --charcoal:    #2B2B2B;
+      --gray:        #8A8A8A;
+      --gray-light:  #EBEBEB;
+      --gray-bg:     #F5F5F5;
+      --red:         #E07070;
+      --red-light:   #FDECEA;
+      --orange:      #E09A50;
+      --orange-light:#FEF3E6;
+      --green-light: #E8F5E9;
+      --green:       #4CAF7A;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    html,body { min-height:100vh; }
+    body {
+      background: var(--cream);
+      color: var(--charcoal);
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 14px;
+      max-width: 430px;
+      margin: 0 auto;
+    }
+
+    /* Login */
+    #loginScreen { min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 32px; }
+    .login-logo { font-family:'Noto Serif JP',serif; font-size:22px; font-weight:400; letter-spacing:.06em; margin-bottom:8px; }
+    .login-sub  { font-size:12px; color:var(--gray); margin-bottom:40px; }
+    .login-card { width:100%; background:var(--white); border-radius:20px; padding:28px 24px; box-shadow:0 4px 28px rgba(0,0,0,.07); }
+    .login-label { font-size:12px; font-weight:500; margin-bottom:8px; color:var(--gray); letter-spacing:.06em; }
+    .login-input { width:100%; padding:14px 15px; border:1.5px solid var(--gray-light); border-radius:12px; font-size:16px; font-family:'Noto Sans JP',sans-serif; color:var(--charcoal); background:var(--cream); outline:none; transition:border-color .18s; }
+    .login-input:focus { border-color:var(--mint); }
+    .login-btn { width:100%; margin-top:20px; padding:16px; background:var(--mint-dark); color:var(--white); border:none; border-radius:12px; font-size:15px; font-family:'Noto Sans JP',sans-serif; font-weight:500; cursor:pointer; letter-spacing:.06em; transition:all .18s; }
+    .login-btn:active { background:var(--mint); transform:scale(.98); }
+    .login-err { color:var(--red); font-size:12px; margin-top:10px; text-align:center; min-height:18px; }
+
+    #app { display:none; }
+
+    /* Topbar */
+    .topbar { background:var(--white); padding:48px 20px 14px; border-bottom:1px solid var(--gray-light); display:flex; align-items:center; justify-content:space-between; }
+    .topbar-title { font-family:'Noto Serif JP',serif; font-size:18px; font-weight:400; }
+    .logout-btn { font-size:11px; color:var(--gray); background:none; border:1px solid var(--gray-light); border-radius:8px; cursor:pointer; padding:6px 10px; font-family:'Noto Sans JP',sans-serif; }
+
+    /* Tabbar */
+    .tabbar { background:var(--white); display:grid; grid-template-columns:repeat(3,1fr); border-bottom:1px solid var(--gray-light); position:sticky; top:0; z-index:50; }
+    .tab { padding:12px 4px 11px; text-align:center; font-size:12px; color:var(--gray); cursor:pointer; border-bottom:2.5px solid transparent; transition:all .18s; }
+    .tab.active { color:var(--mint-dark); border-bottom-color:var(--mint-dark); font-weight:500; }
+    .tab-icon { font-size:16px; display:block; margin-bottom:2px; }
+
+    .tab-pane { display:none; padding-bottom:80px; }
+    .tab-pane.active { display:block; }
+
+    .sec-hd { padding:18px 16px 12px; display:flex; align-items:center; justify-content:space-between; }
+    .sec-title { font-size:13px; font-weight:500; color:var(--gray); letter-spacing:.06em; }
+
+    /* Chips */
+    .chips { display:flex; gap:8px; padding:0 16px 14px; flex-wrap:wrap; }
+    .chip { padding:6px 14px; background:var(--white); border:1.5px solid var(--gray-light); border-radius:20px; font-size:12px; cursor:pointer; font-family:'Noto Sans JP',sans-serif; transition:all .18s; }
+    .chip.active { background:var(--mint-dark); border-color:var(--mint-dark); color:var(--white); }
+
+    /* Reservation Card */
+    .res-list { padding:0 12px; display:flex; flex-direction:column; gap:10px; }
+    .res-card { background:var(--white); border-radius:16px; padding:16px; box-shadow:0 2px 12px rgba(0,0,0,.05); }
+    .res-card-top { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:10px; }
+    .res-datetime { font-size:13px; font-weight:500; }
+    .res-date { font-size:12px; color:var(--gray); margin-top:2px; font-weight:300; }
+    .badge { padding:4px 10px; border-radius:20px; font-size:11px; font-weight:500; white-space:nowrap; }
+    .badge.pending   { background:var(--orange-light); color:var(--orange); }
+    .badge.confirmed { background:var(--green-light);  color:var(--green); }
+    .badge.cancelled { background:var(--gray-light);   color:var(--gray); }
+    .res-name { font-size:15px; font-weight:500; margin-bottom:2px; }
+    .res-furi { font-size:12px; color:var(--gray); }
+    .res-msg { margin-top:10px; padding:10px 12px; background:var(--cream); border-radius:10px; font-size:12px; color:var(--charcoal); line-height:1.7; }
+    .res-msg-label { font-size:10px; color:var(--gray); margin-bottom:4px; }
+    .res-actions { margin-top:12px; display:flex; gap:8px; }
+    .act-btn { flex:1; padding:9px; border-radius:10px; border:1.5px solid; font-size:12px; cursor:pointer; font-family:'Noto Sans JP',sans-serif; transition:all .18s; }
+    .act-btn.confirm { border-color:var(--green); color:var(--green); background:var(--green-light); }
+    .act-btn.confirm:active { background:var(--green); color:var(--white); }
+    .act-btn.cancel  { border-color:var(--red);   color:var(--red);   background:var(--red-light); }
+    .act-btn.cancel:active  { background:var(--red); color:var(--white); }
+    .act-btn:disabled { opacity:.5; cursor:not-allowed; }
+    .empty-state { text-align:center; padding:60px 24px; color:var(--gray); font-size:14px; line-height:1.8; }
+    .empty-icon { font-size:40px; margin-bottom:16px; }
+
+    /* Slot Cal */
+    .cal-wrap { padding:16px 16px 0; }
+    .sm-cal-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+    .sm-nav-btn { width:36px; height:36px; border:none; background:var(--white); border-radius:50%; font-size:18px; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.08); display:flex; align-items:center; justify-content:center; color:var(--charcoal); transition:all .18s; }
+    .sm-nav-btn:active { background:var(--mint-light); }
+    .sm-cal-title { font-size:15px; font-weight:500; }
+    .sm-cal { background:var(--white); border-radius:18px; padding:14px 10px 16px; box-shadow:0 2px 16px rgba(0,0,0,.06); }
+    .sm-weekdays { display:grid; grid-template-columns:repeat(7,1fr); margin-bottom:6px; }
+    .sm-wday { text-align:center; font-size:10px; color:var(--gray); padding:3px 0; }
+    .sm-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; }
+    .sm-day { aspect-ratio:1; display:flex; align-items:center; justify-content:center; border-radius:50%; font-size:13px; font-weight:300; cursor:default; transition:all .18s; position:relative; }
+    .sm-day.has-slots { background:var(--mint-light); color:var(--mint-dark); cursor:pointer; font-weight:500; }
+    .sm-day.past { color:#D5D5D5; }
+    .sm-day.selected { background:var(--mint-dark) !important; color:var(--white) !important; }
+    .sm-day.today-mark::after { content:''; position:absolute; bottom:4px; left:50%; transform:translateX(-50%); width:3px; height:3px; background:currentColor; border-radius:50%; }
+    .sm-day.clickable { cursor:pointer; }
+    .sm-day.clickable:active { background:var(--gray-light); transform:scale(.92); }
+
+    .slot-panel { margin:14px 16px 0; }
+    .slot-panel-hd { font-size:13px; font-weight:500; padding:12px 14px; background:var(--white); border-radius:12px 12px 0 0; border-bottom:1px solid var(--gray-light); }
+    .slot-panel-body { background:var(--white); border-radius:0 0 12px 12px; padding:12px; }
+    .slot-item { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-radius:10px; margin-bottom:6px; }
+    .slot-item.free   { background:var(--mint-light); }
+    .slot-item.booked { background:var(--orange-light); }
+    .slot-time   { font-size:14px; font-weight:500; }
+    .slot-status { font-size:11px; }
+    .slot-status.free   { color:var(--mint-dark); }
+    .slot-status.booked { color:var(--orange); }
+    .del-btn { width:28px; height:28px; background:none; border:1.5px solid var(--red); border-radius:8px; color:var(--red); font-size:14px; cursor:pointer; font-weight:500; display:flex; align-items:center; justify-content:center; transition:all .18s; }
+    .del-btn:active { background:var(--red); color:var(--white); }
+    .del-btn:disabled { opacity:.3; cursor:not-allowed; }
+
+    .add-slot-form { margin-top:10px; padding:14px; background:var(--cream); border-radius:12px; border:1.5px dashed #B8DECE; }
+    .add-slot-label { font-size:11px; color:var(--gray); margin-bottom:10px; letter-spacing:.04em; }
+    .time-row { display:flex; align-items:center; gap:10px; }
+    .time-picker { flex:1; padding:11px 10px; border:1.5px solid var(--gray-light); border-radius:10px; font-size:15px; font-family:'Noto Sans JP',sans-serif; color:var(--charcoal); background:var(--white); outline:none; }
+    .time-picker:focus { border-color:var(--mint); }
+    .time-sep { color:var(--gray); font-size:13px; }
+    .add-btn { padding:11px 18px; background:var(--mint-dark); color:var(--white); border:none; border-radius:10px; font-size:13px; font-family:'Noto Sans JP',sans-serif; font-weight:500; cursor:pointer; white-space:nowrap; transition:all .18s; }
+    .add-btn:active { background:var(--mint); }
+    .add-btn:disabled { opacity:.5; cursor:not-allowed; }
+    .select-prompt { text-align:center; padding:30px 20px; color:var(--gray); font-size:13px; }
+
+    /* Settings */
+    .settings-body { padding:16px; display:flex; flex-direction:column; gap:14px; }
+    .settings-card { background:var(--white); border-radius:16px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,.05); }
+    .settings-card-hd { padding:14px 18px; border-bottom:1px solid var(--gray-light); font-size:13px; font-weight:500; }
+    .settings-card-body { padding:16px 18px; }
+    .settings-label { font-size:12px; color:var(--gray); margin-bottom:8px; }
+    .settings-input { width:100%; padding:12px 14px; border:1.5px solid var(--gray-light); border-radius:10px; font-size:14px; font-family:'Noto Sans JP',sans-serif; color:var(--charcoal); background:var(--cream); outline:none; transition:border-color .18s; }
+    .settings-input:focus { border-color:var(--mint); }
+    .settings-save { margin-top:10px; padding:11px 20px; background:var(--mint-dark); color:var(--white); border:none; border-radius:10px; font-size:13px; font-family:'Noto Sans JP',sans-serif; font-weight:500; cursor:pointer; transition:all .18s; }
+    .settings-save:active { background:var(--mint); }
+    .info-box { padding:12px 14px; background:var(--mint-light); border-radius:10px; font-size:12px; color:var(--mint-dark); line-height:1.8; }
+    .info-box ol { padding-left:18px; }
+    .info-box li { margin-bottom:2px; }
+    .step-box { padding:12px 14px; background:var(--gray-bg); border-radius:10px; font-size:12px; color:var(--charcoal); line-height:1.8; }
+    .step-box code { background:#E8E8E8; padding:2px 6px; border-radius:4px; font-size:11px; }
+
+    .spin { display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,.4); border-top-color:var(--white); border-radius:50%; animation:sp .7s linear infinite; vertical-align:middle; margin-right:4px; }
+    @keyframes sp { to { transform:rotate(360deg); } }
+
+    .toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--charcoal); color:var(--white); padding:12px 22px; border-radius:24px; font-size:13px; z-index:999; transition:transform .3s, opacity .3s; opacity:0; pointer-events:none; white-space:nowrap; }
+    .toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+
+    .demo-badge { display:inline-block; background:#FEF3E6; color:#B86B20; font-size:10px; padding:3px 8px; border-radius:6px; margin-left:8px; }
+  </style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-logo">MiluSpa</div>
+  <div class="login-sub">管理画面</div>
+  <div class="login-card">
+    <div class="login-label">ADMIN PASSWORD</div>
+    <input class="login-input" type="password" id="pwInput" placeholder="パスワードを入力" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">ログイン</button>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-title">管理画面 <span id="demoBadge" class="demo-badge" style="display:none">DEMO</span></div>
+    <button class="logout-btn" onclick="logout()">ログアウト</button>
+  </div>
+  <div class="tabbar">
+    <div class="tab active" onclick="switchTab('res')"   id="tab-res">  <span class="tab-icon">📋</span>予約一覧</div>
+    <div class="tab"        onclick="switchTab('slots')" id="tab-slots"><span class="tab-icon">📅</span>空き枠管理</div>
+    <div class="tab"        onclick="switchTab('cfg')"   id="tab-cfg">  <span class="tab-icon">⚙️</span>設定</div>
+  </div>
+
+  <!-- 予約一覧 -->
+  <div class="tab-pane active" id="pane-res">
+    <div class="sec-hd">
+      <div class="sec-title">RESERVATIONS</div>
+      <button style="background:none;border:none;font-size:18px;cursor:pointer" onclick="loadReservations()">↻</button>
+    </div>
+    <div class="chips">
+      <div class="chip active" onclick="filterRes('all',this)">すべて</div>
+      <div class="chip" onclick="filterRes('pending',this)">未確認</div>
+      <div class="chip" onclick="filterRes('confirmed',this)">確認済</div>
+      <div class="chip" onclick="filterRes('cancelled',this)">キャンセル</div>
+    </div>
+    <div class="res-list" id="resList"><div class="empty-state"><div class="empty-icon">⏳</div>読み込み中...</div></div>
+  </div>
+
+  <!-- 空き枠管理 -->
+  <div class="tab-pane" id="pane-slots">
+    <div class="cal-wrap">
+      <div class="sm-cal-nav">
+        <button class="sm-nav-btn" onclick="slotPrevMonth()">‹</button>
+        <div class="sm-cal-title" id="slotCalTitle"></div>
+        <button class="sm-nav-btn" onclick="slotNextMonth()">›</button>
+      </div>
+      <div class="sm-cal">
+        <div class="sm-weekdays">
+          <div class="sm-wday">日</div><div class="sm-wday">月</div><div class="sm-wday">火</div>
+          <div class="sm-wday">水</div><div class="sm-wday">木</div><div class="sm-wday">金</div><div class="sm-wday">土</div>
+        </div>
+        <div class="sm-grid" id="slotGrid"></div>
+      </div>
+    </div>
+    <div class="slot-panel">
+      <div id="slotPanelHd" class="slot-panel-hd">日付を選択してください</div>
+      <div class="slot-panel-body">
+        <div id="slotItems"><div class="select-prompt">カレンダーの日付をタップして<br>枠を管理してください</div></div>
+        <div class="add-slot-form" id="addSlotForm" style="display:none">
+          <div class="add-slot-label">🕐 新しい枠を追加</div>
+          <div class="time-row">
+            <input type="time" class="time-picker" id="addStart" value="10:00">
+            <span class="time-sep">〜</span>
+            <input type="time" class="time-picker" id="addEnd" value="11:00">
+            <button class="add-btn" id="addBtn" onclick="addSlot()">追加</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 設定 -->
+  <div class="tab-pane" id="pane-cfg">
+    <div class="settings-body">
+      <div class="settings-card">
+        <div class="settings-card-hd">🔑 管理者パスワード変更</div>
+        <div class="settings-card-body">
+          <div class="settings-label">新しいパスワード</div>
+          <input class="settings-input" type="password" id="newPw" placeholder="新しいパスワード">
+          <div class="settings-label" style="margin-top:10px">確認用</div>
+          <input class="settings-input" type="password" id="newPw2" placeholder="もう一度入力">
+          <button class="settings-save" onclick="changePw()">保存</button>
+        </div>
+      </div>
+      <div class="settings-card">
+        <div class="settings-card-hd">🔥 Firebase 設定状況</div>
+        <div class="settings-card-body">
+          <div id="fbStatus" class="info-box"></div>
+        </div>
+      </div>
+      <div class="settings-card">
+        <div class="settings-card-hd">📱 LINE Notify 設定手順</div>
+        <div class="settings-card-body">
+          <div class="info-box">
+            <strong>Cloud Functions Secrets に設定：</strong>
+            <ol style="margin-top:6px">
+              <li><code>firebase functions:secrets:set LINE_NOTIFY_TOKEN</code></li>
+              <li>LINE Notifyで発行したトークンを貼り付け</li>
+              <li><code>firebase deploy --only functions</code></li>
+            </ol>
+          </div>
+          <div style="margin-top:10px" class="step-box">
+            予約が Firestore に書き込まれると<br>
+            <code>notifyOnReservation</code> が自動発火して<br>
+            LINEに通知が届きます。
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// =============================================
+//  ▼▼ 設定（booking.htmlと同じ値を入力）▼▼
+// =============================================
+const FIREBASE_CONFIG = {
+  apiKey:            'YOUR_API_KEY',
+  authDomain:        'YOUR_PROJECT_ID.firebaseapp.com',
+  projectId:         'YOUR_PROJECT_ID',
+  storageBucket:     'YOUR_PROJECT_ID.appspot.com',
+  messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
+  appId:             'YOUR_APP_ID'
+}
+const DEFAULT_PW = 'miluspa2024'
+// =============================================
+
+// Cloud Functions の adminApi エンドポイント（デプロイ後に書き換え）
+// 例: https://asia-northeast1-YOUR_PROJECT_ID.cloudfunctions.net/adminApi
+const ADMIN_API_URL = 'YOUR_ADMIN_API_URL'
+
+// ── Firebase初期化 ──
+const IS_DEMO = !FIREBASE_CONFIG.apiKey || FIREBASE_CONFIG.apiKey === 'YOUR_API_KEY'
+let db = null
+
+if (!IS_DEMO) {
+  try {
+    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG)
+    db = firebase.firestore()
+  } catch(e) { console.warn('Firebase init failed', e) }
+}
+
+// ── 定数・State ──
+const WDAYS = ['日','月','火','水','木','金','土']
+const STATUS_LABELS = { pending:'未確認', confirmed:'確認済', cancelled:'キャンセル' }
+
+let allReservations  = []
+let currentFilter    = 'all'
+let slotYear         = new Date().getFullYear()
+let slotMonth        = new Date().getMonth()
+let selectedSlotDate = null
+let adminSlots       = {}
+let bookedSlots      = {}
+
+// ── デモ用データ ──
+function getDemoSlots() { try { return JSON.parse(localStorage.getItem('miluspa_demo_slots') || '[]') } catch { return [] } }
+function saveDemoSlots(l) { try { localStorage.setItem('miluspa_demo_slots', JSON.stringify(l)) } catch {} }
+function getDemoRes()   { try { return JSON.parse(localStorage.getItem('miluspa_demo_res') || '[]') } catch { return [] } }
+function saveDemoRes(l)  { try { localStorage.setItem('miluspa_demo_res', JSON.stringify(l)) } catch {} }
+
+// ── Admin API ヘルパー（Cloud Functions経由） ──
+async function adminCall(action, params) {
+  const pw = localStorage.getItem('miluspa_admin_pw') || DEFAULT_PW
+  const res = await fetch(ADMIN_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, password: pw, ...params })
+  })
+  if (!res.ok) throw new Error('API error: '+res.status)
+  return res.json()
+}
+
+// ── Auth ──
+function getPw() { return localStorage.getItem('miluspa_admin_pw') || DEFAULT_PW }
+function doLogin() {
+  const pw = document.getElementById('pwInput').value
+  if (pw === getPw()) {
+    document.getElementById('loginScreen').style.display = 'none'
+    document.getElementById('app').style.display = 'block'
+    if (IS_DEMO || !db) {
+      document.getElementById('demoBadge').style.display = 'inline-block'
+      document.getElementById('fbStatus').innerHTML = '⚠️ デモモード（Firebase未設定）<br>localStorage でデータ保存中'
+    } else {
+      document.getElementById('fbStatus').innerHTML = '✅ Firebase接続中<br>Project: '+FIREBASE_CONFIG.projectId
+    }
+    initApp()
+  } else {
+    document.getElementById('loginErr').textContent = 'パスワードが正しくありません'
+    setTimeout(() => document.getElementById('loginErr').textContent = '', 2000)
+  }
+}
+function logout() {
+  document.getElementById('app').style.display = 'none'
+  document.getElementById('loginScreen').style.display = 'flex'
+  document.getElementById('pwInput').value = ''
+}
+function changePw() {
+  const p1 = document.getElementById('newPw').value
+  const p2 = document.getElementById('newPw2').value
+  if (!p1) { toast('パスワードを入力してください'); return }
+  if (p1 !== p2) { toast('パスワードが一致しません'); return }
+  localStorage.setItem('miluspa_admin_pw', p1)
+  toast('✅ パスワードを変更しました')
+  document.getElementById('newPw').value = ''
+  document.getElementById('newPw2').value = ''
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast')
+  el.textContent = msg; el.classList.add('show')
+  setTimeout(() => el.classList.remove('show'), 2400)
+}
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'))
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'))
+  document.getElementById('tab-'+name).classList.add('active')
+  document.getElementById('pane-'+name).classList.add('active')
+  if (name === 'res')   loadReservations()
+  if (name === 'slots') initSlotCal()
+}
+function initApp() {
+  slotYear = new Date().getFullYear()
+  slotMonth = new Date().getMonth()
+  loadReservations()
+}
+
+// =============================================
+//  予約一覧
+// =============================================
+async function loadReservations() {
+  document.getElementById('resList').innerHTML = '<div class="empty-state"><div class="empty-icon">⏳</div>読み込み中...</div>'
+
+  if (IS_DEMO || !db) {
+    allReservations = getDemoRes()
+    renderReservations(); return
+  }
+
+  try {
+    // Firestore から直接読み取り（管理画面は同一ドメインからなのでルール調整が必要）
+    // 本番では adminCall('getReservations') を推奨
+    const snap = await db.collection('reservations')
+      .orderBy('slot_date').orderBy('time_start').get()
+    allReservations = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    renderReservations()
+  } catch {
+    // Firestoreルールで直読み不可の場合はCloud Functions経由
+    try {
+      const data = await adminCall('getReservations')
+      allReservations = data.reservations || []
+      renderReservations()
+    } catch(err) {
+      document.getElementById('resList').innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div>読み込みエラー</div>'
+    }
+  }
+}
+
+function filterRes(f, el) {
+  currentFilter = f
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'))
+  el.classList.add('active')
+  renderReservations()
+}
+
+function renderReservations() {
+  const list = document.getElementById('resList')
+  const filtered = currentFilter === 'all' ? allReservations : allReservations.filter(r => r.status === currentFilter)
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div>'+(currentFilter==='all'?'まだ予約がありません':'該当する予約がありません')+'</div>'
+    return
+  }
+  list.innerHTML = filtered.map(r => {
+    const [,m,d] = r.slot_date.split('-')
+    const dow  = new Date(r.slot_date+'T00:00:00').getDay()
+    const dStr = m+'月'+d+'日（'+WDAYS[dow]+'）'
+    const tStr = r.time_start.slice(0,5)+' 〜 '+r.time_end.slice(0,5)
+    const created = r.created_at
+      ? (typeof r.created_at === 'string'
+          ? new Date(r.created_at) : r.created_at.toDate?.() || new Date()
+        ).toLocaleDateString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})
+      : '—'
+    return '<div class="res-card">'+
+      '<div class="res-card-top"><div>'+
+        '<div class="res-datetime">'+dStr+'　'+tStr+'</div>'+
+        '<div class="res-date">申込：'+created+'</div>'+
+      '</div><span class="badge '+r.status+'">'+STATUS_LABELS[r.status]+'</span></div>'+
+      '<div class="res-name">'+esc(r.customer_name)+'</div>'+
+      '<div class="res-furi">'+esc(r.furigana)+'</div>'+
+      (r.message ? '<div class="res-msg"><div class="res-msg-label">伝えたいこと</div>'+esc(r.message)+'</div>' : '')+
+      '<div class="res-actions">'+
+        (r.status==='pending' ? '<button class="act-btn confirm" onclick="updateStatus(\''+r.id+'\',\'confirmed\')">✓ 確認済</button>' : '')+
+        (r.status!=='cancelled' ? '<button class="act-btn cancel" onclick="updateStatus(\''+r.id+'\',\'cancelled\')">✕ キャンセル</button>' : '')+
+      '</div></div>'
+  }).join('')
+}
+
+async function updateStatus(id, status) {
+  if (!confirm('この予約を「'+(status==='confirmed'?'確認済':'キャンセル')+'」にしますか？')) return
+
+  if (IS_DEMO || !db) {
+    const list = getDemoRes()
+    const i = list.findIndex(r => r.id === id)
+    if (i >= 0) { list[i].status = status; saveDemoRes(list) }
+    allReservations = list; toast('✅ 変更しました'); renderReservations(); return
+  }
+
+  try {
+    await db.collection('reservations').doc(id).update({ status })
+    toast('✅ ステータスを変更しました')
+    await loadReservations()
+  } catch {
+    // Cloud Functions経由にフォールバック
+    try {
+      await adminCall('updateStatus', { reservation_id: id, status })
+      toast('✅ ステータスを変更しました')
+      await loadReservations()
+    } catch(err) { toast('エラー: '+err.message) }
+  }
+}
+
+function esc(s) {
+  if (!s) return ''
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')
+}
+
+// =============================================
+//  空き枠管理
+// =============================================
+async function initSlotCal() { await loadSlotMonth(slotYear, slotMonth) }
+
+async function loadSlotMonth(year, month) {
+  adminSlots = {}; bookedSlots = {}
+  const pad  = n => String(n).padStart(2,'0')
+  const last = new Date(year, month+1, 0).getDate()
+  const s    = year+'-'+pad(month+1)+'-01'
+  const e    = year+'-'+pad(month+1)+'-'+pad(last)
+
+  if (IS_DEMO || !db) {
+    getDemoSlots().filter(sl => sl.slot_date>=s && sl.slot_date<=e).forEach(sl => {
+      if (!adminSlots[sl.slot_date]) adminSlots[sl.slot_date] = []
+      adminSlots[sl.slot_date].push(sl)
+    })
+    getDemoRes().filter(r => ['pending','confirmed'].includes(r.status)).forEach(r => { bookedSlots[r.slot_id] = true })
+  } else {
+    try {
+      const [sSnap, rSnap] = await Promise.all([
+        db.collection('available_slots').where('slot_date','>=',s).where('slot_date','<=',e).orderBy('slot_date').orderBy('time_start').get(),
+        db.collection('reservations').where('slot_date','>=',s).where('slot_date','<=',e).where('status','in',['pending','confirmed']).get()
+      ])
+      sSnap.docs.forEach(d => {
+        const sl = { id: d.id, ...d.data() }
+        if (!adminSlots[sl.slot_date]) adminSlots[sl.slot_date] = []
+        adminSlots[sl.slot_date].push(sl)
+      })
+      rSnap.docs.forEach(d => { bookedSlots[d.data().slot_id] = true })
+    } catch(err) { console.error(err); toast('枠データ取得エラー') }
+  }
+  renderSlotCal(year, month)
+  if (selectedSlotDate) renderSlotPanel(selectedSlotDate)
+}
+
+function renderSlotCal(year, month) {
+  document.getElementById('slotCalTitle').textContent = year+'年'+(month+1)+'月'
+  const grid = document.getElementById('slotGrid')
+  grid.innerHTML = ''
+  const today    = new Date()
+  const todayStr = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0')
+  const firstDow = new Date(year,month,1).getDay()
+  const days     = new Date(year,month+1,0).getDate()
+  for (let i=0;i<firstDow;i++) {
+    const b = document.createElement('div'); b.className='sm-day'; grid.appendChild(b)
+  }
+  for (let day=1;day<=days;day++) {
+    const ds  = year+'-'+String(month+1).padStart(2,'0')+'-'+String(day).padStart(2,'0')
+    const div = document.createElement('div')
+    div.textContent = day
+    const cls = ['sm-day','clickable']
+    if (ds===todayStr) cls.push('today-mark')
+    if (adminSlots[ds]) cls.push('has-slots')
+    if (new Date(year,month,day) < new Date(today.getFullYear(),today.getMonth(),today.getDate())) cls.push('past')
+    if (ds===selectedSlotDate) cls.push('selected')
+    div.className = cls.join(' ')
+    div.onclick   = () => selectSlotDate(ds)
+    grid.appendChild(div)
+  }
+}
+
+function selectSlotDate(ds) {
+  selectedSlotDate = ds
+  renderSlotCal(slotYear, slotMonth)
+  renderSlotPanel(ds)
+}
+
+function renderSlotPanel(ds) {
+  const [,m,d] = ds.split('-')
+  const dow = new Date(ds+'T00:00:00').getDay()
+  document.getElementById('slotPanelHd').textContent = m+'月'+d+'日（'+WDAYS[dow]+'）の枠'
+  const slots = adminSlots[ds] || []
+  const items = document.getElementById('slotItems')
+  items.innerHTML = slots.length === 0
+    ? '<div class="select-prompt" style="padding:20px">この日の枠がありません</div>'
+    : slots.map(sl => {
+        const isB = !!bookedSlots[sl.id]
+        return '<div class="slot-item '+(isB?'booked':'free')+'">'+
+          '<div><div class="slot-time">'+sl.time_start.slice(0,5)+' 〜 '+sl.time_end.slice(0,5)+'</div>'+
+          '<div class="slot-status '+(isB?'booked':'free')+'">'+(isB?'予約あり':'空き')+'</div></div>'+
+          '<button class="del-btn" '+(isB?'disabled':'')+' onclick="deleteSlot(\''+sl.id+'\')">✕</button>'+
+        '</div>'
+      }).join('')
+  document.getElementById('addSlotForm').style.display = 'block'
+}
+
+async function addSlot() {
+  if (!selectedSlotDate) { toast('日付を選択してください'); return }
+  const start = document.getElementById('addStart').value
+  const end   = document.getElementById('addEnd').value
+  if (!start || !end) { toast('時間を入力してください'); return }
+  if (start >= end)   { toast('終了時間は開始時間より後にしてください'); return }
+  const btn = document.getElementById('addBtn')
+  btn.disabled = true
+
+  const ts = start+':00', te = end+':00'
+
+  if (IS_DEMO || !db) {
+    const list = getDemoSlots()
+    if (list.find(sl => sl.slot_date===selectedSlotDate && sl.time_start===ts)) {
+      toast('同じ時間の枠がすでにあります'); btn.disabled=false; return
+    }
+    list.push({ id:'demo-'+Date.now(), slot_date:selectedSlotDate, time_start:ts, time_end:te })
+    saveDemoSlots(list); toast('✅ 枠を追加しました（デモ）')
+    await loadSlotMonth(slotYear, slotMonth); btn.disabled=false; return
+  }
+
+  try {
+    await db.collection('available_slots').add({
+      slot_date: selectedSlotDate, time_start: ts, time_end: te,
+      created_at: firebase.firestore.FieldValue.serverTimestamp()
+    })
+    toast('✅ 枠を追加しました')
+    await loadSlotMonth(slotYear, slotMonth)
+  } catch(err) { toast('エラー: '+err.message) }
+  btn.disabled = false
+}
+
+async function deleteSlot(slotId) {
+  if (!confirm('この枠を削除しますか？')) return
+  if (IS_DEMO || !db) {
+    saveDemoSlots(getDemoSlots().filter(sl => sl.id !== slotId))
+    toast('✅ 枠を削除しました（デモ）')
+    await loadSlotMonth(slotYear, slotMonth); return
+  }
+  try {
+    await db.collection('available_slots').doc(slotId).delete()
+    toast('✅ 枠を削除しました')
+    await loadSlotMonth(slotYear, slotMonth)
+  } catch(err) { toast('エラー: '+err.message) }
+}
+
+function slotPrevMonth() { slotMonth--; if(slotMonth<0){slotMonth=11;slotYear--} selectedSlotDate=null; loadSlotMonth(slotYear,slotMonth) }
+function slotNextMonth() { slotMonth++; if(slotMonth>11){slotMonth=0;slotYear++} selectedSlotDate=null; loadSlotMonth(slotYear,slotMonth) }
+</script>
+</body>
+</html>

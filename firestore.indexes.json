@@ -1,0 +1,21 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "available_slots",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "slot_date", "order": "ASCENDING" },
+        { "fieldPath": "time_start", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "reservations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "slot_date", "order": "ASCENDING" },
+        { "fieldPath": "time_start", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

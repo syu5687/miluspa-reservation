@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MiluSpa｜ご予約</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Noto+Sans+JP:wght@300;400;500&family=Noto+Serif+JP:wght@300;400;500&display=swap" rel="stylesheet">
+
+  <!-- Firebase SDK (v9 compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+
+  <style>
+    :root {
+      --mint:       #7EC8A9;
+      --mint-light: #E8F5F0;
+      --mint-mid:   #B8DECE;
+      --mint-dark:  #5BA08A;
+      --cream:      #FAF9F6;
+      --white:      #FFFFFF;
+      --charcoal:   #2B2B2B;
+      --gray:       #8A8A8A;
+      --gray-light: #EBEBEB;
+      --red:        #E07070;
+      --blue:       #70A0D0;
+      --ff-display: 'Cormorant Garamond', serif;
+      --ff-serif:   'Noto Serif JP', serif;
+      --ff-sans:    'Noto Sans JP', sans-serif;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    html, body { min-height:100vh; }
+    body {
+      background: var(--cream);
+      color: var(--charcoal);
+      font-family: var(--ff-sans);
+      max-width: 430px;
+      margin: 0 auto;
+      padding-bottom: 60px;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: var(--white);
+      padding: 52px 24px 28px;
+      text-align: center;
+      border-bottom: 1px solid var(--gray-light);
+    }
+    .header-en {
+      font-family: var(--ff-display);
+      font-size: 11px;
+      letter-spacing: .35em;
+      color: var(--mint-dark);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .header h1 {
+      font-family: var(--ff-serif);
+      font-size: 22px;
+      font-weight: 400;
+      letter-spacing: .08em;
+    }
+    .header-sub {
+      font-size: 11px;
+      color: var(--gray);
+      margin-top: 6px;
+      font-weight: 300;
+      letter-spacing: .04em;
+    }
+    .demo-banner {
+      display: none;
+      background: #FEF3E6;
+      color: #B86B20;
+      font-size: 11px;
+      text-align: center;
+      padding: 8px 16px;
+      letter-spacing: .03em;
+    }
+
+    /* ── Calendar ── */
+    .cal-section { padding: 24px 16px 0; }
+    .cal-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      padding: 0 4px;
+    }
+    .nav-btn {
+      width: 40px; height: 40px;
+      border: none; background: var(--white);
+      border-radius: 50%; cursor: pointer;
+      font-size: 20px; color: var(--charcoal);
+      box-shadow: 0 2px 10px rgba(0,0,0,.08);
+      display: flex; align-items: center; justify-content: center;
+      transition: all .18s;
+    }
+    .nav-btn:active { background: var(--mint-light); transform: scale(.94); }
+    .cal-title {
+      font-family: var(--ff-serif);
+      font-size: 18px; font-weight: 400; letter-spacing: .06em;
+    }
+    .calendar {
+      background: var(--white);
+      border-radius: 20px;
+      padding: 16px 12px 18px;
+      box-shadow: 0 4px 28px rgba(0,0,0,.07);
+    }
+    .weekdays {
+      display: grid;
+      grid-template-columns: repeat(7,1fr);
+      margin-bottom: 6px;
+    }
+    .wday { text-align: center; font-size: 11px; color: var(--gray); padding: 4px 0; letter-spacing: .04em; }
+    .wday.sun { color: var(--red); }
+    .wday.sat { color: var(--blue); }
+    .days-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; }
+    .day {
+      aspect-ratio: 1;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 50%;
+      font-size: 14px; font-weight: 300;
+      position: relative; cursor: default;
+      transition: all .18s;
+    }
+    .day.past { color: #D5D5D5; }
+    .day.today { font-weight: 500; }
+    .day.today::after {
+      content: '';
+      position: absolute; bottom: 5px; left: 50%;
+      transform: translateX(-50%);
+      width: 4px; height: 4px;
+      background: var(--mint-dark); border-radius: 50%;
+    }
+    .day.available {
+      background: var(--mint-light); color: var(--mint-dark);
+      cursor: pointer; font-weight: 500;
+    }
+    .day.available:active { background: var(--mint); color: var(--white); transform: scale(.93); }
+    .day.sun-col { color: var(--red); }
+    .day.sat-col { color: var(--blue); }
+    .day.available.sun-col, .day.available.sat-col { color: var(--mint-dark); }
+
+    .legend {
+      display: flex; justify-content: center; gap: 24px; margin-top: 14px;
+    }
+    .leg-item { display: flex; align-items: center; gap: 7px; font-size: 11px; color: var(--gray); }
+    .leg-dot { width: 14px; height: 14px; border-radius: 50%; }
+    .leg-dot.a { background: var(--mint-light); border: 1.5px solid var(--mint); }
+    .leg-dot.n { background: var(--gray-light); }
+
+    .notice {
+      margin: 20px 16px 0;
+      padding: 14px 16px;
+      background: var(--mint-light);
+      border-radius: 12px;
+      font-size: 12px; color: var(--mint-dark); line-height: 1.8; letter-spacing: .03em;
+    }
+
+    /* ── Overlay ── */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.38);
+      backdrop-filter: blur(3px);
+      z-index: 100; opacity: 0; pointer-events: none;
+      transition: opacity .28s;
+    }
+    .overlay.on { opacity: 1; pointer-events: all; }
+
+    /* ── Bottom Sheet ── */
+    .bsheet {
+      position: fixed; bottom: 0; left: 50%;
+      transform: translateX(-50%) translateY(102%);
+      width: 100%; max-width: 430px;
+      background: var(--white);
+      border-radius: 24px 24px 0 0;
+      z-index: 101; max-height: 80vh; overflow-y: auto;
+      padding-bottom: 36px;
+      transition: transform .38s cubic-bezier(.32,.72,0,1);
+    }
+    .bsheet.on { transform: translateX(-50%) translateY(0); }
+    .handle { width: 40px; height: 4px; background: var(--gray-light); border-radius: 2px; margin: 12px auto 0; }
+    .bsheet-hd { padding: 18px 24px 14px; border-bottom: 1px solid var(--gray-light); }
+    .bsheet-date { font-family: var(--ff-serif); font-size: 18px; font-weight: 400; }
+    .bsheet-sub { font-size: 12px; color: var(--gray); margin-top: 4px; }
+    .time-list { padding: 14px 20px; display: flex; flex-direction: column; gap: 10px; }
+    .time-btn {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 18px;
+      background: var(--cream); border: 1.5px solid var(--mint-mid);
+      border-radius: 14px; cursor: pointer; font-family: var(--ff-sans);
+      transition: all .18s;
+    }
+    .time-btn:active { background: var(--mint-light); transform: scale(.97); }
+    .time-txt { font-size: 16px; font-weight: 500; }
+    .time-arr { color: var(--mint-dark); font-size: 18px; }
+    .no-slots { text-align: center; padding: 40px 24px; color: var(--gray); font-size: 14px; }
+
+    /* ── Form Modal ── */
+    .fmodal {
+      position: fixed; inset: 0; z-index: 200;
+      display: flex; align-items: flex-end;
+      pointer-events: none;
+    }
+    .fmodal.on { pointer-events: all; }
+    .foverlay {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,.45); backdrop-filter: blur(3px);
+      opacity: 0; transition: opacity .28s;
+    }
+    .fmodal.on .foverlay { opacity: 1; }
+    .fcontainer {
+      position: relative;
+      width: 100%; max-width: 430px; margin: 0 auto;
+      background: var(--white); border-radius: 24px 24px 0 0;
+      transform: translateY(102%);
+      transition: transform .38s cubic-bezier(.32,.72,0,1);
+      max-height: 92vh; overflow-y: auto; padding-bottom: 40px;
+    }
+    .fmodal.on .fcontainer { transform: translateY(0); }
+    .fhd {
+      padding: 18px 24px 14px; border-bottom: 1px solid var(--gray-light);
+      position: sticky; top: 0; background: var(--white); z-index: 1;
+    }
+    .ftitle { font-family: var(--ff-serif); font-size: 18px; font-weight: 400; }
+    .fdatetime {
+      display: inline-flex; align-items: center; gap: 6px;
+      margin-top: 8px; padding: 7px 14px;
+      background: var(--mint-light); border-radius: 8px;
+      font-size: 13px; color: var(--mint-dark); font-weight: 500;
+    }
+    .fbody { padding: 20px 24px; display: flex; flex-direction: column; gap: 20px; }
+    .fgroup { display: flex; flex-direction: column; gap: 8px; }
+    .flabel { font-size: 13px; font-weight: 500; letter-spacing: .03em; }
+    .flabel em { color: var(--red); margin-left: 3px; font-style: normal; }
+    .finput, .ftarea {
+      padding: 14px 15px; border: 1.5px solid var(--gray-light);
+      border-radius: 12px; font-size: 16px;
+      font-family: var(--ff-sans); color: var(--charcoal);
+      background: var(--cream); outline: none; width: 100%;
+      transition: border-color .18s;
+    }
+    .finput:focus, .ftarea:focus { border-color: var(--mint); }
+    .ftarea { min-height: 96px; resize: none; }
+    .fhint { font-size: 11px; color: var(--gray); }
+    .submit-btn {
+      display: block; width: calc(100% - 48px);
+      margin: 4px 24px 0; padding: 17px;
+      background: var(--mint-dark); color: var(--white);
+      border: none; border-radius: 14px;
+      font-size: 16px; font-family: var(--ff-sans);
+      font-weight: 500; cursor: pointer; letter-spacing: .1em;
+      transition: all .18s;
+    }
+    .submit-btn:active { background: var(--mint); transform: scale(.98); }
+    .submit-btn:disabled { opacity: .6; cursor: not-allowed; }
+    .cancel-txt {
+      display: block; text-align: center; margin-top: 14px;
+      background: none; border: none; color: var(--gray);
+      font-size: 13px; cursor: pointer; font-family: var(--ff-sans); padding: 6px;
+    }
+
+    .spin {
+      display: inline-block; width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,.5); border-top-color: var(--white);
+      border-radius: 50%; animation: sp .7s linear infinite;
+      vertical-align: middle; margin-right: 6px;
+    }
+    @keyframes sp { to { transform: rotate(360deg); } }
+
+    /* ── Success ── */
+    .success {
+      position: fixed; inset: 0; background: var(--white); z-index: 300;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 40px 32px; text-align: center;
+      transform: translateY(102%);
+      transition: transform .45s cubic-bezier(.32,.72,0,1);
+    }
+    .success.on { transform: translateY(0); }
+    .suc-icon {
+      width: 80px; height: 80px; background: var(--mint-light);
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 36px; margin-bottom: 28px;
+    }
+    .suc-title { font-family: var(--ff-serif); font-size: 21px; font-weight: 400; margin-bottom: 14px; letter-spacing: .06em; }
+    .suc-text { font-size: 13px; color: var(--gray); line-height: 1.85; }
+    .suc-card {
+      margin-top: 24px; padding: 16px 22px;
+      background: var(--mint-light); border-radius: 14px;
+      font-size: 14px; color: var(--mint-dark); font-weight: 500; line-height: 1.7; width: 100%;
+    }
+    .back-btn {
+      margin-top: 28px; padding: 14px 40px;
+      background: none; border: 1.5px solid var(--mint); border-radius: 12px;
+      color: var(--mint-dark); font-size: 14px; font-family: var(--ff-sans);
+      cursor: pointer; letter-spacing: .06em; transition: all .18s;
+    }
+    .back-btn:active { background: var(--mint-light); }
+    .loading-txt { grid-column: 1/-1; text-align: center; padding: 24px; color: var(--gray); font-size: 13px; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-en">Reservation</div>
+  <h1>MiluSpa ご予約</h1>
+  <p class="header-sub">ドライヘッドスパ｜小城市牛津町</p>
+</div>
+<div class="demo-banner" id="demoBanner">
+  ⚠️ デモモード（Firebase未接続）— サンプルデータで動作確認中
+</div>
+
+<div class="cal-section">
+  <div class="cal-nav">
+    <button class="nav-btn" onclick="prevMonth()">‹</button>
+    <div class="cal-title" id="calTitle"></div>
+    <button class="nav-btn" onclick="nextMonth()">›</button>
+  </div>
+  <div class="calendar">
+    <div class="weekdays">
+      <div class="wday sun">日</div><div class="wday">月</div><div class="wday">火</div>
+      <div class="wday">水</div><div class="wday">木</div><div class="wday">金</div>
+      <div class="wday sat">土</div>
+    </div>
+    <div class="days-grid" id="daysGrid">
+      <div class="loading-txt">読み込み中...</div>
+    </div>
+  </div>
+  <div class="legend">
+    <div class="leg-item"><div class="leg-dot a"></div><span>予約可能</span></div>
+    <div class="leg-item"><div class="leg-dot n"></div><span>空きなし</span></div>
+  </div>
+</div>
+
+<div class="notice">
+  📋 ご予約後、確認のご連絡をさせていただきます。<br>
+  ご不明な点はLINEよりお気軽にお問い合わせください。
+</div>
+
+<div class="overlay" id="overlay" onclick="closeSheet()"></div>
+
+<div class="bsheet" id="bsheet">
+  <div class="handle"></div>
+  <div class="bsheet-hd">
+    <div class="bsheet-date" id="sheetDate"></div>
+    <div class="bsheet-sub">ご希望の時間をお選びください</div>
+  </div>
+  <div class="time-list" id="timeList"></div>
+</div>
+
+<div class="fmodal" id="fmodal">
+  <div class="foverlay" onclick="closeForm()"></div>
+  <div class="fcontainer">
+    <div class="handle" style="margin-top:12px"></div>
+    <div class="fhd">
+      <div class="ftitle">ご予約フォーム</div>
+      <div class="fdatetime" id="fdatetime">📅</div>
+    </div>
+    <div class="fbody">
+      <div class="fgroup">
+        <label class="flabel">お名前<em>*</em></label>
+        <input class="finput" type="text" id="iName" placeholder="山田 花子" autocomplete="name">
+      </div>
+      <div class="fgroup">
+        <label class="flabel">ふりがな<em>*</em></label>
+        <input class="finput" type="text" id="iFurigana" placeholder="やまだ はなこ">
+      </div>
+      <div class="fgroup">
+        <label class="flabel">伝えたいこと</label>
+        <textarea class="ftarea" id="iMessage" placeholder="気になる症状、ご要望などをご記入ください。"></textarea>
+        <div class="fhint">※ 任意項目です</div>
+      </div>
+    </div>
+    <button class="submit-btn" id="submitBtn" onclick="submitReservation()">予約する</button>
+    <button class="cancel-txt" onclick="closeForm()">キャンセル</button>
+  </div>
+</div>
+
+<div class="success" id="successScreen">
+  <div class="suc-icon">🌿</div>
+  <div class="suc-title">ご予約ありがとうございます</div>
+  <p class="suc-text">ご予約を受け付けました。<br>確認のご連絡をさせていただきます。</p>
+  <div class="suc-card" id="sucCard"></div>
+  <button class="back-btn" onclick="resetAll()">カレンダーに戻る</button>
+</div>
+
+<script>
+// =============================================
+//  ▼▼ 設定（ここを編集してください）▼▼
+// =============================================
+const FIREBASE_CONFIG = {
+  apiKey:            'YOUR_API_KEY',
+  authDomain:        'YOUR_PROJECT_ID.firebaseapp.com',
+  projectId:         'YOUR_PROJECT_ID',
+  storageBucket:     'YOUR_PROJECT_ID.appspot.com',
+  messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
+  appId:             'YOUR_APP_ID'
+}
+// =============================================
+
+// ── Firebase初期化チェック ──
+const IS_DEMO = !FIREBASE_CONFIG.apiKey || FIREBASE_CONFIG.apiKey === 'YOUR_API_KEY'
+let db = null
+
+if (!IS_DEMO) {
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG)
+    db = firebase.firestore()
+  } catch(e) { console.warn('Firebase init failed', e) }
+}
+
+if (IS_DEMO || !db) {
+  document.getElementById('demoBanner').style.display = 'block'
+}
+
+// ── デモ用モックデータ ──
+function makeDemoSlots() {
+  const today = new Date()
+  const slots = []
+  const offsets = [1,2,4,5,7,8,11,12]
+  offsets.forEach((off, i) => {
+    const d = new Date(today)
+    d.setDate(d.getDate() + off)
+    const ds = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')
+    const times = i%3===0 ? [['10:00:00','11:00:00'],['14:00:00','15:00:00']]
+                : i%3===1 ? [['11:00:00','12:00:00']]
+                :           [['10:00:00','11:00:00'],['13:00:00','14:00:00']]
+    times.forEach((t,j) => {
+      slots.push({ id:'demo-'+off+'-'+j, slot_date:ds, time_start:t[0], time_end:t[1] })
+    })
+  })
+  return slots
+}
+function getDemoReservations() {
+  try { return JSON.parse(localStorage.getItem('miluspa_demo_res') || '[]') } catch { return [] }
+}
+function saveDemoReservation(obj) {
+  const list = getDemoReservations()
+  list.push(obj)
+  try { localStorage.setItem('miluspa_demo_res', JSON.stringify(list)) } catch {}
+}
+
+// ── State ──
+const today   = new Date()
+let curYear   = today.getFullYear()
+let curMonth  = today.getMonth()
+let slotMap   = {}
+let avail     = {}
+let selSlot   = null
+const WDAYS   = ['日','月','火','水','木','金','土']
+
+function fmt5(t) { return t.slice(0,5) }
+function toDateStr(y,m,d) {
+  return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0')
+}
+function jpDate(dateStr) {
+  const [y,m,d] = dateStr.split('-')
+  const dow = new Date(+y,+m-1,+d).getDay()
+  return +m+'月'+d+'日（'+WDAYS[dow]+'）'
+}
+
+// ── Load Month ──
+async function loadMonth(year, month) {
+  const grid = document.getElementById('daysGrid')
+  grid.innerHTML = '<div class="loading-txt">読み込み中...</div>'
+  slotMap = {}; avail = {}
+
+  const pad  = n => String(n).padStart(2,'0')
+  const last = new Date(year, month+1, 0).getDate()
+  const s    = year+'-'+pad(month+1)+'-01'
+  const e    = year+'-'+pad(month+1)+'-'+pad(last)
+
+  let slots = [], bookedSet = new Set()
+
+  if (IS_DEMO || !db) {
+    slots = makeDemoSlots().filter(sl => sl.slot_date >= s && sl.slot_date <= e)
+    getDemoReservations().forEach(r => bookedSet.add(r.slot_id))
+  } else {
+    try {
+      // Firestore: 空き枠取得
+      const [sSnap, rSnap] = await Promise.all([
+        db.collection('available_slots')
+          .where('slot_date','>=',s).where('slot_date','<=',e)
+          .orderBy('slot_date').orderBy('time_start').get(),
+        db.collection('reservations')
+          .where('slot_date','>=',s).where('slot_date','<=',e)
+          .where('status','in',['pending','confirmed']).get()
+      ])
+      slots = sSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+      rSnap.docs.forEach(d => bookedSet.add(d.data().slot_id))
+    } catch(err) {
+      console.error('Firestore error:', err)
+      grid.innerHTML = '<div class="loading-txt" style="color:#E07070">読み込みエラー。設定を確認してください。</div>'
+      return
+    }
+  }
+
+  slots.forEach(sl => {
+    if (!bookedSet.has(sl.id)) {
+      slotMap[sl.id] = sl
+      if (!avail[sl.slot_date]) avail[sl.slot_date] = []
+      avail[sl.slot_date].push(sl.id)
+    }
+  })
+
+  renderCal(year, month)
+}
+
+// ── Render Calendar ──
+function renderCal(year, month) {
+  document.getElementById('calTitle').textContent = year+'年'+(month+1)+'月'
+  const grid = document.getElementById('daysGrid')
+  grid.innerHTML = ''
+
+  const todayStr  = toDateStr(today.getFullYear(), today.getMonth(), today.getDate())
+  const firstDow  = new Date(year, month, 1).getDay()
+  const days      = new Date(year, month+1, 0).getDate()
+
+  for (let i=0; i<firstDow; i++) {
+    const el = document.createElement('div'); el.className='day'; grid.appendChild(el)
+  }
+  for (let d=1; d<=days; d++) {
+    const dateStr = toDateStr(year, month, d)
+    const dow = new Date(year, month, d).getDay()
+    const div = document.createElement('div')
+    div.textContent = d
+    const cls = ['day']
+    if (dow===0) cls.push('sun-col')
+    if (dow===6) cls.push('sat-col')
+    if (dateStr===todayStr) cls.push('today')
+    const isPast = new Date(year,month,d) < new Date(today.getFullYear(),today.getMonth(),today.getDate())
+    if (avail[dateStr]) { cls.push('available'); div.onclick = () => openSheet(dateStr) }
+    else if (isPast) cls.push('past')
+    div.className = cls.join(' ')
+    grid.appendChild(div)
+  }
+}
+
+function prevMonth() { curMonth--; if(curMonth<0){curMonth=11;curYear--} loadMonth(curYear,curMonth) }
+function nextMonth() { curMonth++; if(curMonth>11){curMonth=0;curYear++} loadMonth(curYear,curMonth) }
+
+// ── Bottom Sheet ──
+function openSheet(dateStr) {
+  document.getElementById('sheetDate').textContent = jpDate(dateStr)
+  const ids  = avail[dateStr] || []
+  const list = document.getElementById('timeList')
+  list.innerHTML = ids.length === 0
+    ? '<div class="no-slots">この日の空き枠がありません</div>'
+    : ids.map(id => {
+        const sl = slotMap[id]
+        return '<button class="time-btn" onclick="selectTime(\''+id+'\')">' +
+          '<span class="time-txt">'+fmt5(sl.time_start)+' 〜 '+fmt5(sl.time_end)+'</span>' +
+          '<span class="time-arr">›</span></button>'
+      }).join('')
+  document.getElementById('overlay').classList.add('on')
+  document.getElementById('bsheet').classList.add('on')
+}
+function closeSheet() {
+  document.getElementById('overlay').classList.remove('on')
+  document.getElementById('bsheet').classList.remove('on')
+}
+
+// ── Form Modal ──
+function selectTime(slotId) {
+  selSlot = slotMap[slotId]
+  document.getElementById('fdatetime').textContent =
+    '📅 '+jpDate(selSlot.slot_date)+'　'+fmt5(selSlot.time_start)+' 〜 '+fmt5(selSlot.time_end)
+  document.getElementById('iName').value = ''
+  document.getElementById('iFurigana').value = ''
+  document.getElementById('iMessage').value = ''
+  closeSheet()
+  setTimeout(() => document.getElementById('fmodal').classList.add('on'), 80)
+}
+function closeForm() { document.getElementById('fmodal').classList.remove('on') }
+
+// ── Submit ──
+async function submitReservation() {
+  const name     = document.getElementById('iName').value.trim()
+  const furigana = document.getElementById('iFurigana').value.trim()
+  const msg      = document.getElementById('iMessage').value.trim()
+  if (!name)     { alert('お名前を入力してください'); return }
+  if (!furigana) { alert('ふりがなを入力してください'); return }
+
+  const btn = document.getElementById('submitBtn')
+  btn.disabled = true
+  btn.innerHTML = '<span class="spin"></span>送信中...'
+
+  try {
+    const payload = {
+      slot_id:       selSlot.id,
+      slot_date:     selSlot.slot_date,
+      time_start:    selSlot.time_start,
+      time_end:      selSlot.time_end,
+      customer_name: name,
+      furigana:      furigana,
+      message:       msg,
+      status:        'pending',
+      created_at:    new Date().toISOString()
+    }
+
+    if (IS_DEMO || !db) {
+      await new Promise(r => setTimeout(r, 700))
+      saveDemoReservation({ id: 'demo-res-'+Date.now(), ...payload })
+    } else {
+      // Firestore に追加（Cloud Functions が自動でLINE通知）
+      await db.collection('reservations').add({
+        ...payload,
+        created_at: firebase.firestore.FieldValue.serverTimestamp()
+      })
+    }
+
+    const [,m,d] = selSlot.slot_date.split('-')
+    document.getElementById('sucCard').innerHTML =
+      '📅 '+m+'月'+d+'日 '+fmt5(selSlot.time_start)+'〜'+fmt5(selSlot.time_end)+'<br>👤 '+name+' 様'
+
+    closeForm()
+    setTimeout(() => document.getElementById('successScreen').classList.add('on'), 200)
+
+  } catch(err) {
+    console.error(err)
+    alert('エラーが発生しました。もう一度お試しください。')
+  } finally {
+    btn.disabled = false
+    btn.innerHTML = '予約する'
+  }
+}
+
+function resetAll() {
+  document.getElementById('successScreen').classList.remove('on')
+  loadMonth(curYear, curMonth)
+}
+
+// ── Init ──
+loadMonth(curYear, curMonth)
+</script>
+</body>
+</html>

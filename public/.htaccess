@@ -1,0 +1,11 @@
+Options -Indexes
+
+RewriteEngine On
+
+# ヘルスチェック
+RewriteRule ^health$ - [L,R=200]
+
+# 存在しないファイルはbooking.htmlへ
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ booking.html [L]
