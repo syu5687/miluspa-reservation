@@ -297,6 +297,24 @@
       cursor: pointer; letter-spacing: .06em; transition: all .18s;
     }
     .back-btn:active { background: var(--mint-light); }
+    .line-add-btn {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      margin-top: 20px; padding: 15px 32px;
+      background: #06C755;
+      color: var(--white);
+      border-radius: 14px;
+      font-size: 15px; font-family: var(--ff-sans);
+      font-weight: 500; letter-spacing: .06em;
+      text-decoration: none;
+      width: 100%;
+      transition: all .18s;
+      box-shadow: 0 4px 16px rgba(6,199,85,.3);
+    }
+    .line-add-btn:active { background: #05a848; transform: scale(.98); }
+    .line-hint {
+      font-size: 12px; color: var(--gray);
+      margin-top: 10px; margin-bottom: 4px;
+    }
     .loading-txt { grid-column: 1/-1; text-align: center; padding: 24px; color: var(--gray); font-size: 13px; }
   </style>
 </head>
@@ -389,6 +407,11 @@
   <div class="suc-title">ご予約ありがとうございます</div>
   <p class="suc-text">ご予約を受け付けました。<br>確認のご連絡をさせていただきます。</p>
   <div class="suc-card" id="sucCard"></div>
+  <a class="line-add-btn" href="https://line.me/R/ti/p/@322qhivv" target="_blank" rel="noopener">
+    <svg width="22" height="22" viewBox="0 0 40 40" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M20 4C11.16 4 4 10.27 4 18c0 4.42 2.22 8.36 5.7 11.03l-1.27 4.72 4.94-2.58C14.93 31.7 17.4 32 20 32c8.84 0 16-6.27 16-14S28.84 4 20 4zm2 18.5h-8v-1.5h8v1.5zm3-4h-11v-1.5h11v1.5zm0-4h-11V13h11v1.5z"/></svg>
+    LINEでお友達登録
+  </a>
+  <div class="line-hint">📩 予約確認・お問い合わせはLINEで</div>
   <button class="back-btn" onclick="resetAll()">カレンダーに戻る</button>
 </div>
 
