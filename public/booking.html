@@ -485,10 +485,10 @@ async function loadMonth(year, month) {
           .orderBy('slot_date').orderBy('time_start').get(),
         db.collection('reservations')
           .where('slot_date','>=',s).where('slot_date','<=',e)
-          .where('status','in',['pending','confirmed']).get()
+          .get() // statusはクライアント側でフィルタ
       ])
       slots = sSnap.docs.map(d => ({ id: d.id, ...d.data() }))
-      rSnap.docs.forEach(d => bookedSet.add(d.data().slot_id))
+      rSnap.docs.forEach(d => { const r = d.data(); if(r.status==='pending'||r.status==='confirmed') bookedSet.add(r.slot_id) })
     } catch(err) {
       console.error('Firestore error:', err)
       grid.innerHTML = '<div class="loading-txt" style="color:#E07070">読み込みエラー。設定を確認してください。</div>'

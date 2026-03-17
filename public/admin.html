@@ -518,14 +518,14 @@ async function loadSlotMonth(year, month) {
     try {
       const [sSnap, rSnap] = await Promise.all([
         db.collection('available_slots').where('slot_date','>=',s).where('slot_date','<=',e).orderBy('slot_date').orderBy('time_start').get(),
-        db.collection('reservations').where('slot_date','>=',s).where('slot_date','<=',e).where('status','in',['pending','confirmed']).get()
+        db.collection('reservations').where('slot_date','>=',s).where('slot_date','<=',e).get() // statusはクライアント側でフィルタ
       ])
       sSnap.docs.forEach(d => {
         const sl = { id: d.id, ...d.data() }
         if (!adminSlots[sl.slot_date]) adminSlots[sl.slot_date] = []
         adminSlots[sl.slot_date].push(sl)
       })
-      rSnap.docs.forEach(d => { bookedSlots[d.data().slot_id] = true })
+      rSnap.docs.forEach(d => { const r=d.data(); if(r.status==='pending'||r.status==='confirmed') bookedSlots[r.slot_id]=true })
     } catch(err) { console.error(err); toast('枠データ取得エラー') }
   }
   renderSlotCal(year, month)
