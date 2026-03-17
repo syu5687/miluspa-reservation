@@ -4,7 +4,7 @@
 #  実行前に PROJECT_ID を書き換えてください
 # =============================================
 
-PROJECT_ID="miluspa-4f1f5"    # ← Firebase/GCPのプロジェクトID
+PROJECT_ID="ema-pro01"        # ← Cloud Run の GCPプロジェクトID
 SERVICE_NAME="miluspa-web"    # Cloud Run サービス名
 REGION="asia-northeast1"      # 東京リージョン
 IMAGE="gcr.io/${PROJECT_ID}/${SERVICE_NAME}"
