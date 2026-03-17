@@ -471,7 +471,8 @@ function renderReservations() {
 }
 
 async function updateStatus(id, status) {
-  if (!confirm('この予約を「'+(status==='confirmed'?'確認済':'キャンセル')+'」にしますか？')) return
+  const label = {confirmed:'確認済', completed:'施術済にする', cancelled:'キャンセル', pending:'確認済に戻す'}[status] || status
+  if (!confirm('この予約を「'+label+'」にしますか？')) return
 
   if (IS_DEMO || !db) {
     const list = getDemoRes()
