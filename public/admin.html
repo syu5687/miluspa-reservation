@@ -203,6 +203,7 @@
       <div class="chip" onclick="filterRes('pending',this)">未確認</div>
       <div class="chip" onclick="filterRes('confirmed',this)">確認済</div>
       <div class="chip" onclick="filterRes('cancelled',this)">キャンセル</div>
+      <div class="chip" onclick="filterRes('completed',this)">施術済</div>
     </div>
     <div class="res-list" id="resList"><div class="empty-state"><div class="empty-icon">⏳</div>読み込み中...</div></div>
   </div>
@@ -315,7 +316,7 @@ if (!IS_DEMO) {
 
 // ── 定数・State ──
 const WDAYS = ['日','月','火','水','木','金','土']
-const STATUS_LABELS = { pending:'未確認', confirmed:'確認済', cancelled:'キャンセル' }
+const STATUS_LABELS = { pending:'未確認', confirmed:'確認済', cancelled:'キャンセル', completed:'施術済' }
 
 let allReservations  = []
 let currentFilter    = 'all'
@@ -462,7 +463,8 @@ function renderReservations() {
       (r.message ? '<div class="res-msg"><div class="res-msg-label">伝えたいこと</div>'+esc(r.message)+'</div>' : '')+
       '<div class="res-actions">'+
         (r.status==='pending' ? '<button class="act-btn confirm" onclick="updateStatus(\''+r.id+'\',\'confirmed\')">✓ 確認済</button>' : '')+
-        (r.status!=='cancelled' ? '<button class="act-btn cancel" onclick="updateStatus(\''+r.id+'\',\'cancelled\')">✕ キャンセル</button>' : '')+
+        (r.status==='confirmed' ? '<button class="act-btn complete" onclick="updateStatus(\''+r.id+'\',\'completed\')">💆 施術済</button>' : '')+
+        (r.status!=='cancelled'&&r.status!=='completed' ? '<button class="act-btn cancel" onclick="updateStatus(\''+r.id+'\',\'cancelled\')">✕ キャンセル</button>' : '')+
       '</div></div>'
   }).join('')
 }
