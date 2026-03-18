@@ -189,7 +189,7 @@
 <div id="app">
   <div class="topbar">
     <div class="topbar-title">管理画面 <span id="demoBadge" class="demo-badge" style="display:none">DEMO</span></div>
-    <div style="display:flex;align-items:center;gap:10px"><span style="font-size:10px;color:var(--gray);letter-spacing:.04em">v20260318-0022</span><button class="logout-btn" onclick="logout()">ログアウト</button></div>
+    <div style="display:flex;align-items:center;gap:10px"><span style="font-size:10px;color:var(--gray);letter-spacing:.04em">v20260318-0023</span><button class="logout-btn" onclick="logout()">ログアウト</button></div>
   </div>
   <div class="tabbar">
     <div class="tab active" onclick="switchTab('res')"   id="tab-res">  <span class="tab-icon">📋</span>予約一覧</div>
@@ -529,12 +529,22 @@ async function updateStatus(id, status) {
   if (IS_DEMO || !db) {
     const list = getDemoRes()
     const i = list.findIndex(r => r.id === id)
-    if (i >= 0) { list[i].status = status; saveDemoRes(list) }
+    if (i >= 0) {
+      if (status === 'archived') list[i].archived_from = list[i].status
+      list[i].status = status
+      saveDemoRes(list)
+    }
     allReservations = list; toast('✅ 変更しました'); renderReservations(); return
   }
 
   try {
-    await db.collection('reservations').doc(id).update({ status })
+    const updateData = { status }
+    // アーカイブ時は直前のステータスを保存
+    if (status === 'archived') {
+      const target = allReservations.find(r => r.id === id)
+      if (target) updateData.archived_from = target.status
+    }
+    await db.collection('reservations').doc(id).update(updateData)
     toast('✅ ステータスを変更しました')
     await loadReservations()
   } catch {
