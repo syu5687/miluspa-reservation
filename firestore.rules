@@ -2,18 +2,23 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 空き枠：誰でも読み取り可・書き込み不可（管理者はSDK Admin経由）
+    // 空き枠：読み書きOK（管理画面から操作）
     match /available_slots/{docId} {
       allow read: if true;
-      allow write: if false;
+      allow write: if true;
     }
 
-    // 予約：誰でも作成可・読み書きは不可（管理はAdmin SDK）
+    // 予約：作成・読み取り・更新OK
     match /reservations/{docId} {
-      allow create: if
-        request.resource.data.keys().hasAll(['slot_id','slot_date','time_start','time_end','customer_name','furigana','status']) &&
-        request.resource.data.status == 'pending';
-      allow read, update, delete: if false;
+      allow create: if true;
+      allow read:   if true;
+      allow update: if true;
+      allow delete: if false;
+    }
+
+    // 管理設定（パスワード等）：読み書きOK
+    match /settings/{docId} {
+      allow read, write: if true;
     }
   }
 }

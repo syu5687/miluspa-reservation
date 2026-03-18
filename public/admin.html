@@ -346,22 +346,45 @@ async function adminCall(action, params) {
 
 // ── Auth ──
 function getPw() { return localStorage.getItem('miluspa_admin_pw') || DEFAULT_PW }
-function doLogin() {
+async function doLogin() {
   const pw = document.getElementById('pwInput').value
-  if (pw === getPw()) {
-    document.getElementById('loginScreen').style.display = 'none'
-    document.getElementById('app').style.display = 'block'
-    if (IS_DEMO || !db) {
-      document.getElementById('demoBadge').style.display = 'inline-block'
-      document.getElementById('fbStatus').innerHTML = '⚠️ デモモード（Firebase未設定）<br>localStorage でデータ保存中'
+  if (!pw) return
+
+  const btn = document.querySelector('.login-btn')
+  btn.textContent = '確認中...'
+  btn.disabled = true
+
+  try {
+    // Firestoreからパスワードを取得（デモ時はDEFAULT_PW）
+    let correctPw = DEFAULT_PW
+    if (!IS_DEMO && db) {
+      const doc = await db.collection('settings').doc('admin').get()
+      if (doc.exists && doc.data().password) correctPw = doc.data().password
     } else {
-      document.getElementById('fbStatus').innerHTML = '✅ Firebase接続中<br>Project: '+FIREBASE_CONFIG.projectId
+      correctPw = localStorage.getItem('miluspa_admin_pw') || DEFAULT_PW
     }
-    sessionStorage.setItem('miluspa_authed', '1')
-    initApp()
-  } else {
-    document.getElementById('loginErr').textContent = 'パスワードが正しくありません'
-    setTimeout(() => document.getElementById('loginErr').textContent = '', 2000)
+
+    if (pw === correctPw) {
+      document.getElementById('loginScreen').style.display = 'none'
+      document.getElementById('app').style.display = 'block'
+      if (IS_DEMO || !db) {
+        document.getElementById('demoBadge').style.display = 'inline-block'
+        document.getElementById('fbStatus').innerHTML = '⚠️ デモモード（Firebase未設定）<br>localStorage でデータ保存中'
+      } else {
+        document.getElementById('fbStatus').innerHTML = '✅ Firebase接続中<br>Project: '+FIREBASE_CONFIG.projectId
+      }
+      sessionStorage.setItem('miluspa_authed', '1')
+      initApp()
+    } else {
+      document.getElementById('loginErr').textContent = 'パスワードが正しくありません'
+      setTimeout(() => document.getElementById('loginErr').textContent = '', 2000)
+    }
+  } catch(err) {
+    console.error(err)
+    document.getElementById('loginErr').textContent = 'エラーが発生しました'
+  } finally {
+    btn.textContent = 'ログイン'
+    btn.disabled = false
   }
 }
 function logout() {
@@ -370,15 +393,30 @@ function logout() {
   document.getElementById('loginScreen').style.display = 'flex'
   document.getElementById('pwInput').value = ''
 }
-function changePw() {
+async function changePw() {
   const p1 = document.getElementById('newPw').value
   const p2 = document.getElementById('newPw2').value
   if (!p1) { toast('パスワードを入力してください'); return }
   if (p1 !== p2) { toast('パスワードが一致しません'); return }
-  localStorage.setItem('miluspa_admin_pw', p1)
-  toast('✅ パスワードを変更しました')
-  document.getElementById('newPw').value = ''
-  document.getElementById('newPw2').value = ''
+  if (p1.length < 6) { toast('6文字以上で設定してください'); return }
+
+  try {
+    if (!IS_DEMO && db) {
+      // Firestoreに保存（全端末に反映）
+      await db.collection('settings').doc('admin').set({ password: p1 }, { merge: true })
+      toast('✅ パスワードを変更しました（全端末に反映）')
+    } else {
+      localStorage.setItem('miluspa_admin_pw', p1)
+      toast('✅ パスワードを変更しました')
+    }
+    // sessionStorageも更新
+    sessionStorage.setItem('miluspa_authed', '1')
+    document.getElementById('newPw').value = ''
+    document.getElementById('newPw2').value = ''
+  } catch(err) {
+    console.error(err)
+    toast('エラーが発生しました')
+  }
 }
 
 function toast(msg) {
