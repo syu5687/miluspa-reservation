@@ -105,8 +105,9 @@ exports.lineWebhook = onRequest(
 
         if (!isPhone) {
           await replyLine(token, event.replyToken,
-            'ご連絡ありがとうございます🌿\n\n' +
-            '予約内容の確認は、ご登録の電話番号を送ってください。\n\n' +
+            'ご連絡ありがとうございます🌿\n' +
+            'スタッフが、送信された内容を確認中です\n\n' +
+            '※予約内容の確認は、ご登録の電話番号を送ってください。\n\n' +
             '例）090-1234-5678'
           )
           continue
