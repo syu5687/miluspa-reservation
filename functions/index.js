@@ -77,7 +77,7 @@ exports.notifyOnReservation = onDocumentCreated(
 // 2. LINE Webhook：お客様の電話番号送信で予約確認を返信
 // =============================================
 exports.lineWebhook = onRequest(
-  { secrets: [LINE_TOKEN] },
+  { secrets: [LINE_TOKEN], minInstances: 1 },
   async (req, res) => {
     res.status(200).send('OK')
     const token  = LINE_TOKEN.value()
