@@ -97,6 +97,11 @@
     .act-btn.cancel  { border-color:var(--red);   color:var(--red);   background:var(--red-light); }
     .act-btn.cancel:active  { background:var(--red); color:var(--white); }
     .act-btn:disabled { opacity:.5; cursor:not-allowed; }
+    .act-btn.archive  { border-color:#8A8A8A; color:#8A8A8A; background:#F5F5F5; }
+    .act-btn.archive:active { background:#8A8A8A; color:var(--white); }
+    .act-btn.unarchive { border-color:var(--mint-dark); color:var(--mint-dark); background:var(--mint-light); }
+    .act-btn.unarchive:active { background:var(--mint-dark); color:var(--white); }
+    .res-card.archived-card { opacity: 0.7; border-left: 3px solid #CCCCCC; }
     .empty-state { text-align:center; padding:60px 24px; color:var(--gray); font-size:14px; line-height:1.8; }
     .empty-icon { font-size:40px; margin-bottom:16px; }
 
@@ -184,7 +189,7 @@
 <div id="app">
   <div class="topbar">
     <div class="topbar-title">管理画面 <span id="demoBadge" class="demo-badge" style="display:none">DEMO</span></div>
-    <div style="display:flex;align-items:center;gap:10px"><span style="font-size:10px;color:var(--gray);letter-spacing:.04em">v20260318-0021</span><button class="logout-btn" onclick="logout()">ログアウト</button></div>
+    <div style="display:flex;align-items:center;gap:10px"><span style="font-size:10px;color:var(--gray);letter-spacing:.04em">v20260318-0022</span><button class="logout-btn" onclick="logout()">ログアウト</button></div>
   </div>
   <div class="tabbar">
     <div class="tab active" onclick="switchTab('res')"   id="tab-res">  <span class="tab-icon">📋</span>予約一覧</div>
@@ -202,8 +207,9 @@
       <div class="chip active" onclick="filterRes('all',this)">すべて</div>
       <div class="chip" onclick="filterRes('pending',this)">未確認</div>
       <div class="chip" onclick="filterRes('confirmed',this)">確認済</div>
-      <div class="chip" onclick="filterRes('cancelled',this)">キャンセル</div>
       <div class="chip" onclick="filterRes('completed',this)">施術済</div>
+      <div class="chip" onclick="filterRes('cancelled',this)">キャンセル</div>
+      <div class="chip" onclick="filterRes('archived',this)">📦 アーカイブ</div>
     </div>
     <div class="res-list" id="resList"><div class="empty-state"><div class="empty-icon">⏳</div>読み込み中...</div></div>
   </div>
@@ -316,7 +322,7 @@ if (!IS_DEMO) {
 
 // ── 定数・State ──
 const WDAYS = ['日','月','火','水','木','金','土']
-const STATUS_LABELS = { pending:'未確認', confirmed:'確認済', cancelled:'キャンセル', completed:'施術済' }
+const STATUS_LABELS = { pending:'未確認', confirmed:'確認済', cancelled:'キャンセル', completed:'施術済', archived:'アーカイブ済' }
 
 let allReservations  = []
 let currentFilter    = 'all'
@@ -477,7 +483,10 @@ function filterRes(f, el) {
 
 function renderReservations() {
   const list = document.getElementById('resList')
-  const filtered = currentFilter === 'all' ? allReservations : allReservations.filter(r => r.status === currentFilter)
+  // すべて = archived以外を表示、archivedタブのみarchived表示
+  const filtered = currentFilter === 'all'
+    ? allReservations.filter(r => r.status !== 'archived')
+    : allReservations.filter(r => r.status === currentFilter)
   if (filtered.length === 0) {
     list.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div>'+(currentFilter==='all'?'まだ予約がありません':'該当する予約がありません')+'</div>'
     return
@@ -506,13 +515,15 @@ function renderReservations() {
       (r.status === 'pending'   ? '<button class="act-btn confirm"  onclick="updateStatus(\'' + r.id + '\',\'confirmed\')" >✓ 確認済にする</button>' : '') +
       (r.status === 'confirmed'  ? '<button class="act-btn complete" onclick="updateStatus(\'' + r.id + '\',\'completed\')" >💆 施術済にする</button>' : '') +
       (r.status === 'completed'  ? '<button class="act-btn confirm"  onclick="updateStatus(\'' + r.id + '\',\'confirmed\')" >↩ 確認済に戻す</button>' : '') +
-      (r.status !== 'cancelled' && r.status !== 'completed' ? '<button class="act-btn cancel" onclick="updateStatus(\'' + r.id + '\',\'cancelled\')" >✕ キャンセル</button>' : '') +
+      (r.status !== 'cancelled' && r.status !== 'completed' && r.status !== 'archived' ? '<button class="act-btn cancel" onclick="updateStatus(\'' + r.id + '\',\'cancelled\')" >✕ キャンセル</button>' : '') +
+      (r.status === 'completed' || r.status === 'cancelled' ? '<button class="act-btn archive" onclick="updateStatus(\'' + r.id + '\',\'archived\')" >📦 アーカイブ</button>' : '') +
+      (r.status === 'archived' ? '<button class="act-btn unarchive" onclick="updateStatus(\'' + r.id + '\',\'confirmed\')" >↩ 戻す</button>' : '') +
       '</div></div>'
   }).join('')
 }
 
 async function updateStatus(id, status) {
-  const label = {confirmed:'確認済', completed:'施術済にする', cancelled:'キャンセル', pending:'確認済に戻す'}[status] || status
+  const label = {confirmed:'確認済', completed:'施術済にする', cancelled:'キャンセル', pending:'確認済に戻す', archived:'アーカイブ'}[status] || status
   if (!confirm('この予約を「'+label+'」にしますか？')) return
 
   if (IS_DEMO || !db) {

@@ -227,7 +227,7 @@ exports.adminApi = onRequest(
         }
         case 'updateStatus': {
           const { reservation_id, status } = params
-          if (!['pending','confirmed','cancelled','completed'].includes(status)) {
+          if (!['pending','confirmed','cancelled','completed','archived'].includes(status)) {
             res.status(400).json({ error: 'Invalid status' }); return
           }
           await db.collection('reservations').doc(reservation_id).update({ status })
