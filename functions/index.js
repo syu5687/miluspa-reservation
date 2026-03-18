@@ -117,15 +117,24 @@ exports.lineWebhook = onRequest(
         let reservation  = null
 
         for (const fmt of [phoneRaw, withHyphen]) {
+          // statusフィルタとorderByの複合インデックス不要のためシンプルなクエリに
           const snap = await db.collection('reservations')
             .where('phone', '==', fmt)
-            .where('status', 'in', ['pending', 'confirmed'])
-            .orderBy('created_at', 'desc')
-            .limit(1)
             .get()
           if (!snap.empty) {
-            reservation = { id: snap.docs[0].id, ...snap.docs[0].data() }
-            break
+            // クライアント側でstatus絞り込み・最新順ソート
+            const docs = snap.docs
+              .map(d => ({ id: d.id, ...d.data() }))
+              .filter(r => r.status === 'pending' || r.status === 'confirmed')
+              .sort((a, b) => {
+                const ta = a.created_at ? (a.created_at.toMillis ? a.created_at.toMillis() : new Date(a.created_at).getTime()) : 0
+                const tb = b.created_at ? (b.created_at.toMillis ? b.created_at.toMillis() : new Date(b.created_at).getTime()) : 0
+                return tb - ta
+              })
+            if (docs.length > 0) {
+              reservation = docs[0]
+              break
+            }
           }
         }
 
