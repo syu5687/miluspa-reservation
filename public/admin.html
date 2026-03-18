@@ -184,7 +184,7 @@
 <div id="app">
   <div class="topbar">
     <div class="topbar-title">管理画面 <span id="demoBadge" class="demo-badge" style="display:none">DEMO</span></div>
-    <button class="logout-btn" onclick="logout()">ログアウト</button>
+    <div style="display:flex;align-items:center;gap:10px"><span style="font-size:10px;color:var(--gray);letter-spacing:.04em">v20260318-0012</span><button class="logout-btn" onclick="logout()">ログアウト</button></div>
   </div>
   <div class="tabbar">
     <div class="tab active" onclick="switchTab('res')"   id="tab-res">  <span class="tab-icon">📋</span>予約一覧</div>
@@ -357,6 +357,7 @@ function doLogin() {
     } else {
       document.getElementById('fbStatus').innerHTML = '✅ Firebase接続中<br>Project: '+FIREBASE_CONFIG.projectId
     }
+    sessionStorage.setItem('miluspa_authed', '1')
     initApp()
   } else {
     document.getElementById('loginErr').textContent = 'パスワードが正しくありません'
@@ -364,6 +365,7 @@ function doLogin() {
   }
 }
 function logout() {
+  sessionStorage.removeItem('miluspa_authed')
   document.getElementById('app').style.display = 'none'
   document.getElementById('loginScreen').style.display = 'flex'
   document.getElementById('pwInput').value = ''
@@ -635,6 +637,21 @@ async function deleteSlot(slotId) {
 
 function slotPrevMonth() { slotMonth--; if(slotMonth<0){slotMonth=11;slotYear--} selectedSlotDate=null; loadSlotMonth(slotYear,slotMonth) }
 function slotNextMonth() { slotMonth++; if(slotMonth>11){slotMonth=0;slotYear++} selectedSlotDate=null; loadSlotMonth(slotYear,slotMonth) }
+
+// ── 自動ログイン（sessionStorage）──
+(function() {
+  if (sessionStorage.getItem('miluspa_authed') === '1') {
+    document.getElementById('loginScreen').style.display = 'none'
+    document.getElementById('app').style.display = 'block'
+    if (IS_DEMO || !db) {
+      document.getElementById('demoBadge').style.display = 'inline-block'
+      document.getElementById('fbStatus').innerHTML = '⚠️ デモモード（Firebase未設定）'
+    } else {
+      document.getElementById('fbStatus').innerHTML = '✅ Firebase接続中<br>Project: ' + FIREBASE_CONFIG.projectId
+    }
+    initApp()
+  }
+})()
 </script>
 </body>
 </html>
