@@ -243,6 +243,29 @@
     .finput:focus, .ftarea:focus { border-color: var(--mint); }
     .ftarea { min-height: 96px; resize: none; }
     .fhint { font-size: 11px; color: var(--gray); }
+    .gender-group { display: flex; gap: 10px; }
+    .gender-btn { display: flex; align-items: center; cursor: pointer; }
+    .gender-btn input { display: none; }
+    .gender-btn span {
+      padding: 11px 18px;
+      border: 1.5px solid var(--gray-light);
+      border-radius: 12px;
+      font-size: 15px;
+      font-family: var(--ff-sans);
+      color: var(--gray);
+      background: var(--cream);
+      transition: all .18s;
+      user-select: none;
+    }
+    .gender-btn input:checked + span {
+      border-color: var(--mint);
+      background: var(--mint-light);
+      color: var(--mint-dark);
+      font-weight: 500;
+    }
+    .age-row { display: flex; align-items: center; gap: 10px; }
+    .age-input { max-width: 120px; }
+    .age-unit { font-size: 15px; color: var(--charcoal); font-weight: 400; }
     .submit-btn {
       display: block; width: calc(100% - 48px);
       margin: 4px 24px 0; padding: 17px;
@@ -390,6 +413,21 @@
           autocomplete="tel" inputmode="numeric"
           oninput="formatPhone(this)">
         <div class="fhint">※ ハイフンは自動で入ります</div>
+      </div>
+      <div class="fgroup">
+        <label class="flabel">性別<em>*</em></label>
+        <div class="gender-group">
+          <label class="gender-btn"><input type="radio" name="gender" value="女性" checked><span>女性</span></label>
+          <label class="gender-btn"><input type="radio" name="gender" value="男性"><span>男性</span></label>
+          <label class="gender-btn"><input type="radio" name="gender" value="その他"><span>その他</span></label>
+        </div>
+      </div>
+      <div class="fgroup">
+        <label class="flabel">年齢<em>*</em></label>
+        <div class="age-row">
+          <input class="finput age-input" type="number" id="iAge" placeholder="例：35" min="1" max="120" inputmode="numeric">
+          <span class="age-unit">歳</span>
+        </div>
       </div>
       <div class="fgroup">
         <label class="flabel">伝えたいこと</label>
@@ -621,7 +659,10 @@ function selectTime(slotId) {
   document.getElementById('iName').value = ''
   document.getElementById('iFurigana').value = ''
   document.getElementById('iPhone').value = ''
+  document.getElementById('iAge').value = ''
   document.getElementById('iMessage').value = ''
+  const genderRadio = document.querySelector('input[name="gender"][value="女性"]')
+  if (genderRadio) genderRadio.checked = true
   closeSheet()
   setTimeout(() => document.getElementById('fmodal').classList.add('on'), 80)
 }
@@ -633,9 +674,12 @@ async function submitReservation() {
   const furigana = document.getElementById('iFurigana').value.trim()
   const phone    = document.getElementById('iPhone').value.trim()
   const msg      = document.getElementById('iMessage').value.trim()
+  const gender   = (document.querySelector('input[name="gender"]:checked') || {}).value || '女性'
+  const age      = document.getElementById('iAge').value.trim()
   if (!name)     { alert('お名前を入力してください'); return }
   if (!furigana) { alert('ふりがなを入力してください'); return }
   if (!phone)    { alert('携帯番号を入力してください'); return }
+  if (!age)      { alert('年齢を入力してください'); return }
 
   const btn = document.getElementById('submitBtn')
   btn.disabled = true
@@ -650,6 +694,8 @@ async function submitReservation() {
       customer_name: name,
       furigana:      furigana,
       phone:         phone,
+      gender:        gender,
+      age:           age,
       message:       msg,
       status:        'pending',
       created_at:    new Date().toISOString()
