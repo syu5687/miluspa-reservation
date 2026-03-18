@@ -1,10 +1,10 @@
 /**
- * MiluSpa Cloud Functions
- * LINE Messaging API 版（LINE Notify 終了のため移行）
+ * MiluSpa Cloud Functions v20260318-0016
  *
- * Secrets（firebase functions:secrets:set で設定）:
+ * Secrets:
  *   LINE_CHANNEL_ACCESS_TOKEN  — チャンネルアクセストークン（長期）
- *   LINE_OWNER_USER_ID         — オーナーのLINE User ID
+ *   LINE_OWNER_USER_ID         — オーナーのLINE User ID（Ai）
+ *   ADMIN_PASSWORD             — 管理画面パスワード
  */
 
 const { onDocumentCreated } = require('firebase-functions/v2/firestore')
@@ -19,63 +19,154 @@ const LINE_TOKEN   = defineSecret('LINE_CHANNEL_ACCESS_TOKEN')
 const LINE_USER_ID = defineSecret('LINE_OWNER_USER_ID')
 const ADMIN_PW_SEC = defineSecret('ADMIN_PASSWORD')
 
-// CORS ヘルパー
+const WDAYS = ['日','月','火','水','木','金','土']
+
 const cors = (res) => {
   res.set('Access-Control-Allow-Origin', '*')
   res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
 }
 
-// =============================================
-// LINE Messaging API でプッシュ通知を送る
-// =============================================
-async function sendLineMessage(token, userId, text) {
+async function sendLinePush(token, userId, text) {
   const { default: fetch } = await import('node-fetch')
-  const res = await fetch('https://api.line.me/v2/bot/message/push', {
+  const r = await fetch('https://api.line.me/v2/bot/message/push', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
-    body: JSON.stringify({
-      to: userId,
-      messages: [{ type: 'text', text }]
-    })
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+    body: JSON.stringify({ to: userId, messages: [{ type: 'text', text }] })
   })
-  const result = await res.json()
-  if (!res.ok) throw new Error(JSON.stringify(result))
-  return result
+  const j = await r.json()
+  if (!r.ok) throw new Error(JSON.stringify(j))
+}
+
+async function replyLine(token, replyToken, text) {
+  const { default: fetch } = await import('node-fetch')
+  await fetch('https://api.line.me/v2/bot/message/reply', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+    body: JSON.stringify({ replyToken, messages: [{ type: 'text', text }] })
+  })
 }
 
 // =============================================
-// 1. Firestore トリガー：予約作成時にLINE通知
+// 1. 予約作成時 → オーナーへLINE通知
 // =============================================
 exports.notifyOnReservation = onDocumentCreated(
   { document: 'reservations/{docId}', secrets: [LINE_TOKEN, LINE_USER_ID] },
   async (event) => {
-    const data  = event.data.data()
+    const data   = event.data.data()
     const token  = LINE_TOKEN.value()
     const userId = LINE_USER_ID.value()
-    if (!token || !userId) { console.error('LINE secrets not set'); return }
+    if (!token || !userId) return
 
-    const WDAYS = ['日','月','火','水','木','金','土']
     const [,m,d] = data.slot_date.split('-')
     const dow    = new Date(data.slot_date).getDay()
 
     const msg =
-      `【新規ご予約 - MiluSpa】\n` +
-      `📅 ${+m}月${+d}日（${WDAYS[dow]}） ${data.time_start.slice(0,5)}〜${data.time_end.slice(0,5)}\n` +
-      `👤 ${data.customer_name}（${data.furigana}）\n` +
-      `🔹 ${data.gender || '未記入'} / ${data.age ? data.age+'歳' : '未記入'}\n` +
-      `📱 ${data.phone || 'なし'}\n` +
-      `💬 ${data.message || 'なし'}`
+      '【新規ご予約 - MiluSpa】\n' +
+      '📅 ' + (+m) + '月' + (+d) + '日（' + WDAYS[dow] + '） ' + data.time_start.slice(0,5) + '〜' + data.time_end.slice(0,5) + '\n' +
+      '👤 ' + data.customer_name + '（' + data.furigana + '）\n' +
+      '🔹 ' + (data.gender || '未記入') + ' / ' + (data.age ? data.age + '歳' : '未記入') + '\n' +
+      '📱 ' + (data.phone || 'なし') + '\n' +
+      '💬 ' + (data.message || 'なし')
 
-    await sendLineMessage(token, userId, msg)
-    console.log('LINE通知送信完了')
+    await sendLinePush(token, userId, msg)
+    console.log('オーナーへLINE通知完了')
   }
 )
 
 // =============================================
-// 2. 管理API（空き枠 CRUD・予約ステータス変更）
+// 2. LINE Webhook：お客様の電話番号送信で予約確認を返信
+// =============================================
+exports.lineWebhook = onRequest(
+  { secrets: [LINE_TOKEN] },
+  async (req, res) => {
+    res.status(200).send('OK')
+    const token  = LINE_TOKEN.value()
+    const events = req.body.events || []
+
+    for (const event of events) {
+      try {
+        // フォロー時：案内を送る
+        if (event.type === 'follow') {
+          await replyLine(token, event.replyToken,
+            'MiluSpa 公式LINEへようこそ🌿\n\n' +
+            'ご予約後に電話番号を送っていただくと\n' +
+            '予約確認メッセージをお送りします📅\n\n' +
+            '例）090-1234-5678'
+          )
+          continue
+        }
+
+        if (event.type !== 'message' || event.message.type !== 'text') continue
+
+        const userLineId = event.source.userId
+        const text       = event.message.text.trim()
+        const phoneRaw   = text.replace(/-/g, '')
+        const isPhone    = /^0[0-9]{9,10}$/.test(phoneRaw)
+
+        if (!isPhone) {
+          await replyLine(token, event.replyToken,
+            'ご連絡ありがとうございます🌿\n\n' +
+            '予約内容の確認は、ご登録の電話番号を送ってください。\n\n' +
+            '例）090-1234-5678'
+          )
+          continue
+        }
+
+        // 電話番号（ハイフンあり・なし）で予約を検索
+        const withHyphen = phoneRaw.slice(0,3) + '-' + phoneRaw.slice(3,7) + '-' + phoneRaw.slice(7)
+        let reservation  = null
+
+        for (const fmt of [phoneRaw, withHyphen]) {
+          const snap = await db.collection('reservations')
+            .where('phone', '==', fmt)
+            .where('status', 'in', ['pending', 'confirmed'])
+            .orderBy('created_at', 'desc')
+            .limit(1)
+            .get()
+          if (!snap.empty) {
+            reservation = { id: snap.docs[0].id, ...snap.docs[0].data() }
+            break
+          }
+        }
+
+        if (!reservation) {
+          await replyLine(token, event.replyToken,
+            'ご予約が見つかりませんでした。\n\n' +
+            '・予約時と同じ電話番号をご確認ください\n' +
+            '・ご不明な点はこのLINEからご相談ください'
+          )
+          continue
+        }
+
+        // 予約確認メッセージを返信
+        const [,m,d] = reservation.slot_date.split('-')
+        const dow    = new Date(reservation.slot_date).getDay()
+        const statusLabel = reservation.status === 'confirmed' ? '✅ 確認済み' : '⏳ 確認待ち'
+
+        await replyLine(token, event.replyToken,
+          '【ご予約確認 - MiluSpa🌿】\n\n' +
+          reservation.customer_name + ' 様\n\n' +
+          '📅 ' + (+m) + '月' + (+d) + '日（' + WDAYS[dow] + '）\n' +
+          '🕐 ' + reservation.time_start.slice(0,5) + '〜' + reservation.time_end.slice(0,5) + '\n' +
+          '📋 ' + statusLabel + '\n\n' +
+          'ご予約ありがとうございます。\n' +
+          'ご不明な点はこのLINEからご連絡ください😊'
+        )
+
+        // お客様のLINE IDを予約に保存
+        await db.collection('reservations').doc(reservation.id).update({
+          customer_line_id: userLineId
+        })
+
+      } catch(err) {
+        console.error('Webhook error:', err)
+      }
+    }
+  }
+)
+
+// =============================================
+// 3. 管理API
 // =============================================
 exports.adminApi = onRequest(
   { secrets: [LINE_TOKEN, LINE_USER_ID, ADMIN_PW_SEC] },
@@ -85,7 +176,7 @@ exports.adminApi = onRequest(
     if (req.method !== 'POST')    { res.status(405).json({ error: 'Method not allowed' }); return }
 
     const { action, password, ...params } = req.body
-    const correctPw = ADMIN_PW_SEC.value() || 'miluspa2024'
+    const correctPw = ADMIN_PW_SEC.value() || 'miluspa2026'
 
     if (password !== correctPw) {
       res.status(401).json({ error: 'Unauthorized' }); return
@@ -97,8 +188,8 @@ exports.adminApi = onRequest(
           const { year, month } = params
           const pad  = n => String(n).padStart(2,'0')
           const last = new Date(year, month, 0).getDate()
-          const s    = `${year}-${pad(month)}-01`
-          const e    = `${year}-${pad(month)}-${pad(last)}`
+          const s    = year + '-' + pad(month) + '-01'
+          const e    = year + '-' + pad(month) + '-' + pad(last)
           const snap = await db.collection('available_slots')
             .where('slot_date','>=',s).where('slot_date','<=',e)
             .orderBy('slot_date').orderBy('time_start').get()
@@ -106,9 +197,8 @@ exports.adminApi = onRequest(
           break
         }
         case 'addSlot': {
-          const { slot_date, time_start, time_end } = params
           const ref = await db.collection('available_slots').add({
-            slot_date, time_start, time_end,
+            slot_date: params.slot_date, time_start: params.time_start, time_end: params.time_end,
             created_at: admin.firestore.FieldValue.serverTimestamp()
           })
           res.json({ id: ref.id })
@@ -143,4 +233,3 @@ exports.adminApi = onRequest(
     }
   }
 )
-
