@@ -499,7 +499,7 @@ function renderReservations() {
       '</div><span class="badge '+r.status+'">'+STATUS_LABELS[r.status]+'</span></div>'+
       '<div class="res-name">'+esc(r.customer_name)+'</div>'+
       '<div class="res-furi">'+esc(r.furigana)+'</div>'+
-      (r.gender||r.age ? '<div class="res-furi" style="color:var(--mint-dark)">'+(r.gender||'')+(r.age?' / '+r.age+'歳':'')+'</div>' : '')+
+      (r.plan ? '<div class="res-furi" style="color:var(--mint-dark);font-weight:500">🌿 '+esc(r.plan)+'</div>' : '')+
       (r.phone ? '<div class="res-furi"><a href="tel:' + r.phone.replace(/-/g,'') + '" style="color:var(--mint-dark);text-decoration:none;font-weight:500">📱 ' + esc(r.phone) + '</a></div>' : '') +
       (r.message ? '<div class="res-msg"><div class="res-msg-label">伝えたいこと</div>' + esc(r.message) + '</div>' : '') +
       '<div class="res-actions">' +

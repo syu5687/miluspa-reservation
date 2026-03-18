@@ -243,29 +243,34 @@
     .finput:focus, .ftarea:focus { border-color: var(--mint); }
     .ftarea { min-height: 96px; resize: none; }
     .fhint { font-size: 11px; color: var(--gray); }
-    .gender-group { display: flex; gap: 10px; }
-    .gender-btn { display: flex; align-items: center; cursor: pointer; }
-    .gender-btn input { display: none; }
-    .gender-btn span {
-      padding: 11px 18px;
+    .plan-group { display: flex; flex-direction: column; gap: 10px; }
+    .plan-btn { display: flex; align-items: center; cursor: pointer; }
+    .plan-btn input { display: none; }
+    .plan-btn span {
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%;
+      padding: 14px 16px;
       border: 1.5px solid var(--gray-light);
       border-radius: 12px;
-      font-size: 15px;
+      font-size: 14px;
       font-family: var(--ff-sans);
-      color: var(--gray);
+      color: var(--charcoal);
       background: var(--cream);
       transition: all .18s;
       user-select: none;
+      line-height: 1.6;
     }
-    .gender-btn input:checked + span {
+    .plan-btn input:checked + span {
       border-color: var(--mint);
       background: var(--mint-light);
       color: var(--mint-dark);
       font-weight: 500;
     }
-    .age-row { display: flex; align-items: center; gap: 10px; }
-    .age-input { max-width: 120px; }
-    .age-unit { font-size: 15px; color: var(--charcoal); font-weight: 400; }
+    .plan-name { font-weight: 500; }
+    .plan-meta { font-size: 12px; color: var(--gray); }
+    .plan-price { text-align: right; }
+    .plan-price-now { font-size: 15px; font-weight: 700; color: var(--mint-dark); }
+    .plan-price-old { font-size: 11px; color: var(--gray); text-decoration: line-through; }
     .submit-btn {
       display: block; width: calc(100% - 48px);
       margin: 4px 24px 0; padding: 17px;
@@ -426,18 +431,36 @@
         <div class="fhint">※ ハイフンは自動で入ります</div>
       </div>
       <div class="fgroup">
-        <label class="flabel">性別<em>*</em></label>
-        <div class="gender-group">
-          <label class="gender-btn"><input type="radio" name="gender" value="女性" checked><span>女性</span></label>
-          <label class="gender-btn"><input type="radio" name="gender" value="男性"><span>男性</span></label>
-          <label class="gender-btn"><input type="radio" name="gender" value="その他"><span>その他</span></label>
-        </div>
-      </div>
-      <div class="fgroup">
-        <label class="flabel">年齢<em>*</em></label>
-        <div class="age-row">
-          <input class="finput age-input" type="number" id="iAge" placeholder="例：35" min="1" max="120" inputmode="numeric">
-          <span class="age-unit">歳</span>
+        <label class="flabel">ご希望のプラン<em>*</em></label>
+        <div class="plan-group">
+          <label class="plan-btn">
+            <input type="radio" name="plan" value="クイックコース（30min）¥2,500" checked>
+            <span>
+              <span><div class="plan-name">クイックコース</div><div class="plan-meta">30 min</div></span>
+              <span class="plan-price"><div class="plan-price-now">¥2,500<small>（税込）</small></div><div class="plan-price-old">通常 ¥3,000</div></span>
+            </span>
+          </label>
+          <label class="plan-btn">
+            <input type="radio" name="plan" value="スタンダードコース（45min）¥3,500">
+            <span>
+              <span><div class="plan-name">スタンダードコース</div><div class="plan-meta">45 min</div></span>
+              <span class="plan-price"><div class="plan-price-now">¥3,500<small>（税込）</small></div><div class="plan-price-old">通常 ¥4,000</div></span>
+            </span>
+          </label>
+          <label class="plan-btn">
+            <input type="radio" name="plan" value="プレミアムコース（60min）¥4,500">
+            <span>
+              <span><div class="plan-name">プレミアムコース</div><div class="plan-meta">60 min</div></span>
+              <span class="plan-price"><div class="plan-price-now">¥4,500<small>（税込）</small></div><div class="plan-price-old">通常 ¥5,000</div></span>
+            </span>
+          </label>
+          <label class="plan-btn">
+            <input type="radio" name="plan" value="キッズヘッドケア（20min）¥1,500 ※7歳以上対象">
+            <span>
+              <span><div class="plan-name">キッズヘッドケア</div><div class="plan-meta">20 min</div><div style="font-size:11px;color:#E09A50;margin-top:2px">※ 7歳以上対象</div></span>
+              <span class="plan-price"><div class="plan-price-now">¥1,500<small>（税込）</small></div><div class="plan-price-old">通常 ¥2,000</div></span>
+            </span>
+          </label>
         </div>
       </div>
       <div class="fgroup">
@@ -674,10 +697,9 @@ function selectTime(slotId) {
   document.getElementById('iName').value = ''
   document.getElementById('iFurigana').value = ''
   document.getElementById('iPhone').value = ''
-  document.getElementById('iAge').value = ''
   document.getElementById('iMessage').value = ''
-  const genderRadio = document.querySelector('input[name="gender"][value="女性"]')
-  if (genderRadio) genderRadio.checked = true
+  const firstPlan = document.querySelector('input[name="plan"]')
+  if (firstPlan) firstPlan.checked = true
   closeSheet()
   setTimeout(() => document.getElementById('fmodal').classList.add('on'), 80)
 }
@@ -689,12 +711,11 @@ async function submitReservation() {
   const furigana = document.getElementById('iFurigana').value.trim()
   const phone    = document.getElementById('iPhone').value.trim()
   const msg      = document.getElementById('iMessage').value.trim()
-  const gender   = (document.querySelector('input[name="gender"]:checked') || {}).value || '女性'
-  const age      = document.getElementById('iAge').value.trim()
+  const plan = (document.querySelector('input[name="plan"]:checked') || {}).value || ''
   if (!name)     { alert('お名前を入力してください'); return }
   if (!furigana) { alert('ふりがなを入力してください'); return }
   if (!phone)    { alert('携帯番号を入力してください'); return }
-  if (!age)      { alert('年齢を入力してください'); return }
+  if (!plan)     { alert('プランを選択してください'); return }
 
   const btn = document.getElementById('submitBtn')
   btn.disabled = true
@@ -709,8 +730,7 @@ async function submitReservation() {
       customer_name: name,
       furigana:      furigana,
       phone:         phone,
-      gender:        gender,
-      age:           age,
+      plan:          plan,
       message:       msg,
       status:        'pending',
       created_at:    new Date().toISOString()
