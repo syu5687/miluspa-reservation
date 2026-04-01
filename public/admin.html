@@ -122,6 +122,8 @@
     .sm-day.today-mark::after { content:''; position:absolute; bottom:4px; left:50%; transform:translateX(-50%); width:3px; height:3px; background:currentColor; border-radius:50%; }
     .sm-day.clickable { cursor:pointer; }
     .sm-day.clickable:active { background:var(--gray-light); transform:scale(.92); }
+    .sm-day.is-holiday { background:#fde8e8 !important; color:#c0392b !important; cursor:pointer; position:relative; }
+    .sm-day.is-holiday::before { content:'✕'; position:absolute; top:-1px; right:0px; font-size:7px; color:#c0392b; }
 
     .slot-panel { margin:14px 16px 0; }
     .slot-panel-hd { font-size:13px; font-weight:500; padding:12px 14px; background:var(--white); border-radius:12px 12px 0 0; border-bottom:1px solid var(--gray-light); }
@@ -639,6 +641,7 @@ function renderSlotCal(year, month) {
     const cls = ['sm-day','clickable']
     if (ds===todayStr) cls.push('today-mark')
     if (adminSlots[ds]) cls.push('has-slots')
+    if (holidays.includes(ds)) cls.push('is-holiday')
     if (new Date(year,month,day) < new Date(today.getFullYear(),today.getMonth(),today.getDate())) cls.push('past')
     if (ds===selectedSlotDate) cls.push('selected')
     div.className = cls.join(' ')
@@ -657,6 +660,16 @@ function renderSlotPanel(ds) {
   const [,m,d] = ds.split('-')
   const dow = new Date(ds+'T00:00:00').getDay()
   document.getElementById('slotPanelHd').textContent = m+'月'+d+'日（'+WDAYS[dow]+'）の枠'
+  if (holidays.includes(ds)) {
+    document.getElementById('slotItems').innerHTML =
+      '<div style="text-align:center;padding:24px 16px">' +
+      '<div style="font-size:32px;margin-bottom:8px">🚫</div>' +
+      '<div style="font-weight:500;color:#c0392b;margin-bottom:4px">定休日</div>' +
+      '<div style="font-size:12px;color:var(--gray)">この日は定休日に設定されています</div>' +
+      '</div>'
+    document.getElementById('addSlotForm').style.display = 'none'
+    return
+  }
   const slots = adminSlots[ds] || []
   const items = document.getElementById('slotItems')
   items.innerHTML = slots.length === 0
@@ -766,6 +779,7 @@ async function addHoliday() {
   await saveHolidays()
   input.value = ''
   toast('✅ 定休日を追加しました')
+  renderSlotCal(slotYear, slotMonth)
 }
 
 async function deleteHoliday(date) {
@@ -773,6 +787,7 @@ async function deleteHoliday(date) {
   holidays = holidays.filter(d => d !== date)
   await saveHolidays()
   toast('✅ 定休日を削除しました')
+  renderSlotCal(slotYear, slotMonth)
 }
 
 async function saveHolidays() {
