@@ -189,7 +189,7 @@
 <div id="app">
   <div class="topbar">
     <div class="topbar-title">管理画面 <span id="demoBadge" class="demo-badge" style="display:none">DEMO</span></div>
-    <div style="display:flex;align-items:center;gap:10px"><span style="font-size:10px;color:var(--gray);letter-spacing:.04em">v20260325-0027</span><button class="logout-btn" onclick="logout()">ログアウト</button></div>
+    <div style="display:flex;align-items:center;gap:10px"><span style="font-size:10px;color:var(--gray);letter-spacing:.04em">v20260325-0029</span><button class="logout-btn" onclick="logout()">ログアウト</button></div>
   </div>
   <div class="tabbar">
     <div class="tab active" onclick="switchTab('res')"   id="tab-res">  <span class="tab-icon">📋</span>予約一覧</div>
@@ -442,6 +442,7 @@ function initApp() {
   slotYear = new Date().getFullYear()
   slotMonth = new Date().getMonth()
   loadReservations()
+  loadHolidays()
 }
 
 // =============================================
@@ -697,6 +698,69 @@ async function deleteSlot(slotId) {
 
 function slotPrevMonth() { slotMonth--; if(slotMonth<0){slotMonth=11;slotYear--} selectedSlotDate=null; loadSlotMonth(slotYear,slotMonth) }
 function slotNextMonth() { slotMonth++; if(slotMonth>11){slotMonth=0;slotYear++} selectedSlotDate=null; loadSlotMonth(slotYear,slotMonth) }
+
+// =============================================
+//  定休日管理
+// =============================================
+let holidays = [] // ['2026-04-01', '2026-04-15', ...]
+
+async function loadHolidays() {
+  if (IS_DEMO || !db) {
+    try { holidays = JSON.parse(localStorage.getItem('miluspa_holidays') || '[]') } catch { holidays = [] }
+  } else {
+    try {
+      const doc = await db.collection('settings').doc('holidays').get()
+      holidays = (doc.exists && doc.data().dates) ? doc.data().dates : []
+    } catch(e) { console.error(e) }
+  }
+  renderHolidays()
+}
+
+function renderHolidays() {
+  const list = document.getElementById('holidayList')
+  if (!list) return
+  if (holidays.length === 0) {
+    list.innerHTML = '<div style="text-align:center;padding:12px;color:var(--gray);font-size:13px">定休日が設定されていません</div>'
+    return
+  }
+  const WDAYS = ['日','月','火','水','木','金','土']
+  list.innerHTML = [...holidays].sort().map(d => {
+    const [y,m,day] = d.split('-')
+    const dow = new Date(d+'T00:00:00').getDay()
+    return '<div class="holiday-item">' +
+      '<span class="holiday-date">🚫 ' + (+m) + '月' + (+day) + '日（' + WDAYS[dow] + '）</span>' +
+      '<button class="holiday-del" onclick="deleteHoliday('' + d + '')">✕</button>' +
+    '</div>'
+  }).join('')
+}
+
+async function addHoliday() {
+  const input = document.getElementById('holidayInput')
+  const date  = input.value
+  if (!date) { toast('日付を選択してください'); return }
+  if (holidays.includes(date)) { toast('すでに登録されています'); return }
+
+  holidays = [...holidays, date].sort()
+  await saveHolidays()
+  input.value = ''
+  toast('✅ 定休日を追加しました')
+}
+
+async function deleteHoliday(date) {
+  if (!confirm(date + ' の定休日を削除しますか？')) return
+  holidays = holidays.filter(d => d !== date)
+  await saveHolidays()
+  toast('✅ 定休日を削除しました')
+}
+
+async function saveHolidays() {
+  if (IS_DEMO || !db) {
+    localStorage.setItem('miluspa_holidays', JSON.stringify(holidays))
+  } else {
+    await db.collection('settings').doc('holidays').set({ dates: holidays })
+  }
+  renderHolidays()
+}
 
 // ── 自動ログイン（sessionStorage）──
 (function() {

@@ -407,6 +407,22 @@
       margin-top: 10px; margin-bottom: 4px;
     }
     .loading-txt { grid-column: 1/-1; text-align: center; padding: 24px; color: var(--gray); font-size: 13px; }
+    .day.holiday {
+      color: var(--red) !important;
+      font-size: 10px !important;
+      font-weight: 500 !important;
+      background: #FFF0F0 !important;
+      border-radius: 6px !important;
+      cursor: default !important;
+      flex-direction: column;
+      gap: 0px;
+      line-height: 1.2;
+    }
+    .day.holiday .holiday-label {
+      font-size: 9px;
+      color: var(--red);
+      letter-spacing: 0;
+    }
 
   </style>
 </head>
@@ -440,6 +456,7 @@
   <div class="legend">
     <div class="leg-item"><div class="leg-dot a"></div><span>予約可能</span></div>
     <div class="leg-item"><div class="leg-dot n"></div><span>空きなし</span></div>
+    <div class="leg-item"><div class="leg-dot" style="background:#FFF0F0;border:1.5px solid var(--red)"></div><span>定休日</span></div>
   </div>
 </div>
 
@@ -619,9 +636,10 @@ function saveDemoReservation(obj) {
 const today   = new Date()
 let curYear   = today.getFullYear()
 let curMonth  = today.getMonth()
-let slotMap   = {}
-let avail     = {}
-let selSlot   = null
+let slotMap    = {}
+let avail      = {}
+let selSlot    = null
+let holidaySet = new Set() // 定休日の日付セット
 const WDAYS   = ['日','月','火','水','木','金','土']
 
 function fmt5(t) { return t.slice(0,5) }
@@ -653,7 +671,7 @@ function _rebuildAvail() {
 }
 
 // ── Load Month（onSnapshot リアルタイム版）──
-function loadMonth(year, month) {
+async function loadMonth(year, month) {
   // 前のリスナーを解除
   if (_unsubSlots) { _unsubSlots(); _unsubSlots = null }
   if (_unsubRes)   { _unsubRes();   _unsubRes   = null }
@@ -661,6 +679,17 @@ function loadMonth(year, month) {
   const grid = document.getElementById('daysGrid')
   grid.innerHTML = '<div class="loading-txt">読み込み中...</div>'
   _allSlots = []; _bookedSet = new Set()
+
+  // 定休日を取得（Firestore or demo）
+  holidaySet = new Set()
+  if (!IS_DEMO && db) {
+    try {
+      const hdoc = await db.collection('settings').doc('holidays').get()
+      if (hdoc.exists && hdoc.data().dates) {
+        hdoc.data().dates.forEach(d => holidaySet.add(d))
+      }
+    } catch(e) { console.warn('holidays fetch error', e) }
+  }
 
   const pad  = n => String(n).padStart(2,'0')
   const last = new Date(year, month+1, 0).getDate()
@@ -726,8 +755,14 @@ function renderCal(year, month) {
     if (dow===6) cls.push('sat-col')
     if (dateStr===todayStr) cls.push('today')
     const isPast = new Date(year,month,d) < new Date(today.getFullYear(),today.getMonth(),today.getDate())
-    if (avail[dateStr]) { cls.push('available'); div.onclick = () => openSheet(dateStr) }
-    else if (isPast) cls.push('past')
+    if (holidaySet.has(dateStr)) {
+      cls.push('holiday')
+      div.innerHTML = d + '<span class="holiday-label">休</span>'
+    } else if (avail[dateStr]) {
+      cls.push('available'); div.onclick = () => openSheet(dateStr)
+    } else if (isPast) {
+      cls.push('past')
+    }
     div.className = cls.join(' ')
     grid.appendChild(div)
   }

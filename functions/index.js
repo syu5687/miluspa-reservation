@@ -158,6 +158,7 @@ exports.lineWebhook = onRequest(
           reservation.customer_name + ' 様\n\n' +
           '📅 ' + (+m) + '月' + (+d) + '日（' + WDAYS[dow] + '）\n' +
           '🕐 ' + reservation.time_start.slice(0,5) + '〜' + reservation.time_end.slice(0,5) + '\n' +
+          (reservation.plan ? '🌿 ' + reservation.plan + '\n' : '') +
           '📋 ' + statusLabel + '\n\n' +
           'ご予約ありがとうございます。\n' +
           'ご不明な点はこのLINEからご連絡ください😊'
