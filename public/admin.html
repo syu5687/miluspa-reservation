@@ -729,7 +729,7 @@ function renderHolidays() {
     const dow = new Date(d+'T00:00:00').getDay()
     return '<div class="holiday-item">' +
       '<span class="holiday-date">🚫 ' + (+m) + '月' + (+day) + '日（' + WDAYS[dow] + '）</span>' +
-      '<button class="holiday-del" onclick="deleteHoliday('' + d + '')">✕</button>' +
+      '<button class="holiday-del" onclick="deleteHoliday(\'' + d + '\')">✕</button>' +
     '</div>'
   }).join('')
 }
