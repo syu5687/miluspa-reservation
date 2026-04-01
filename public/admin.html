@@ -158,6 +158,15 @@
     .settings-input:focus { border-color:var(--mint); }
     .settings-save { margin-top:10px; padding:11px 20px; background:var(--mint-dark); color:var(--white); border:none; border-radius:10px; font-size:13px; font-family:'Noto Sans JP',sans-serif; font-weight:500; cursor:pointer; transition:all .18s; }
     .settings-save:active { background:var(--mint); }
+    .holiday-add-row { display:flex; gap:8px; margin-top:10px; }
+    .holiday-add-row input[type="date"] { flex:1; padding:11px 12px; border:1.5px solid var(--gray-light); border-radius:10px; font-size:14px; font-family:'Noto Sans JP',sans-serif; color:var(--charcoal); background:var(--cream); outline:none; }
+    .holiday-add-row input[type="date"]:focus { border-color:var(--mint); }
+    .holiday-add-btn { padding:11px 16px; background:var(--mint-dark); color:var(--white); border:none; border-radius:10px; font-size:13px; font-weight:500; cursor:pointer; white-space:nowrap; }
+    .holiday-list { margin-top:12px; display:flex; flex-direction:column; gap:6px; }
+    .holiday-item { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:var(--cream); border-radius:10px; border:1px solid var(--gray-light); }
+    .holiday-date { font-size:13px; color:var(--charcoal); }
+    .holiday-del { background:none; border:1px solid #e0b0b0; color:#c0392b; border-radius:8px; padding:4px 10px; font-size:12px; cursor:pointer; }
+    .holiday-del:active { background:#fdecea; }
     .info-box { padding:12px 14px; background:var(--mint-light); border-radius:10px; font-size:12px; color:var(--mint-dark); line-height:1.8; }
     .info-box ol { padding-left:18px; }
     .info-box li { margin-bottom:2px; }
@@ -258,6 +267,19 @@
           <div class="settings-label" style="margin-top:10px">確認用</div>
           <input class="settings-input" type="password" id="newPw2" placeholder="もう一度入力">
           <button class="settings-save" onclick="changePw()">保存</button>
+        </div>
+      </div>
+      <div class="settings-card">
+        <div class="settings-card-hd">🚫 定休日管理</div>
+        <div class="settings-card-body">
+          <div class="settings-label">定休日を追加</div>
+          <div class="holiday-add-row">
+            <input type="date" id="holidayInput">
+            <button class="holiday-add-btn" onclick="addHoliday()">追加</button>
+          </div>
+          <div class="holiday-list" id="holidayList">
+            <div style="text-align:center;padding:12px;color:var(--gray);font-size:13px">定休日が設定されていません</div>
+          </div>
         </div>
       </div>
       <div class="settings-card">
